@@ -172,7 +172,7 @@ The Search & Discovery System handles user search and discovery requests. It com
            v
 +---------------------+
 |      LLM Agent      | (Optional/Bonus for RAG)
-|   (Conversational)  | [cite: 124]
+|   (Conversational)  | 
 +----------+----------+
            |
            | (6) Final Response
@@ -185,3 +185,52 @@ The Search & Discovery System handles user search and discovery requests. It com
 ```
 ---
 
+## High-Level System Architecture
+
+```
++-----------------------------------------------------------------------+
+|                            1. FRONTEND                                |
+|   +---------------------+                                             |
+|   |   Svelte Web App    |                                             |
+|   +---------------------+                                             |
++--------------|--------------------------------------------------------+
+               | HTTP
+               v
++--------------|--------------------------------------------------------+
+|                            2. BACKEND                                 |
+|                                                                       |
+|    +-------------------------------------------------------------+    |
+|    |  Layer A: Web API (Presentation)                            |    |
+|    +--------------------------+----------------------------------+    |
+|                               | Uses                                  |
+|                               v                                       |
+|    +-------------------------------------------------------------+    |
+|    |  Layer B: Core (Business Logic)                             |    |
+|    |  - EtlOrchestrator (Uses IMetadataParser)                   |    |
+|    |  - Domain: Dataset, MetadataRecord                          |    |
+|    +--------------------------^----------------------------------+    |
+|                               ^                                       |
+|                               | Implements                           |
+|    +--------------------------+----------------------------------+    |
+|    |  Layer C: Infrastructure (Data & Parsers)                   |    |
+|    |                                                             |    |
+|    |  [Parser Strategy Pattern]                                  |    |
+|    |  - Factory: MetadataParserFactory                           |    |
+|    |  - Strategies: XmlParser, JsonParser, RdfParser             |    |
+|    |  - Container: ZipFileProcessor                              |    |
+|    |                                                             |    |
+|    |  [Persistence]                                              |    |
+|    |  - SQLite Repository      - Vector Store Impl               |    |
+|    +-------------------------------------------------------------+    |
++-------------------------------|---------------------------------------+
+                                | Reads / Writes
+                                v
++-------------------------------|---------------------------------------+
+|                         3. DATA STORAGE                               |
+|    +----------------+                  +----------------+             |
+|    | SQLite DB File | <--------------> |  Vector Store  |             |
+|    +----------------+   (Shared IDs)   |  (Embeddings)  |             |
+|                                        +----------------+             |
++-----------------------------------------------------------------------+
+
+```
