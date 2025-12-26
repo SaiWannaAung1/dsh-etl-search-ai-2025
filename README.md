@@ -1,7 +1,7 @@
 # dsh-etl-search-ai-2025
 ## About The Project
 
-This solution is a dataset search and discovery platform designed to demonstrate modern **Clean Architecture** and **Semantic Search** capabilities.
+### [Gemini LLM conversations for Project](https://gemini.google.com/share/cde03d48ae92)
 
 The system is designed to ingest metadata and supporting documents from the **CEH Catalogue Service** , process them into vector embeddings, and allow users to discover data using natural language queries.
 
