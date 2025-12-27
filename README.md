@@ -18,7 +18,7 @@ Key capabilities include:
 | Category | Technology |
 |----------|------------|
 | Backend  | C# .NET 8 (ASP.NET Core Web API) |
-| Frontend | Svelte / SvelteKit (TypeScript, Tailwind CSS, shadcn-ui) |
+| Frontend | Svelte |
 | Dataset  | SQLite (relational metadata) + ChromaDB (vector embeddings) |
 
 ---
