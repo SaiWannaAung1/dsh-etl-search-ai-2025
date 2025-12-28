@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="DshEtlSearch.Api/DshEtlSearch.Api.csproj" />
+  <Project Path="DshEtlSearch.Core/DshEtlSearch.Core.csproj" />
+  <Project Path="DshEtlSearch.Infrastructure/DshEtlSearch.Infrastructure.csproj" />
+  <Project Path="DshEtlSearch.Tests/DshEtlSearch.Tests.csproj" />
+</Solution>
