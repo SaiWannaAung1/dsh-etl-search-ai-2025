@@ -19,7 +19,7 @@ Key capabilities include:
 |----------|------------|
 | Backend  | C# .NET 8 (ASP.NET Core Web API) |
 | Frontend | Svelte |
-| Dataset  | SQLite (relational metadata) + ChromaDB (vector embeddings) |
+| Dataset  | SQLite (relational metadata) + Qdrant (vector embeddings) |
 
 ---
 
