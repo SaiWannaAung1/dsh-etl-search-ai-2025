@@ -36,4 +36,4 @@ jobs:
 
       - name: Run Tests
         # Runs Unit Tests (Core) and Integration Tests (Infrastructure)
-        run: dotnet test DshEtlSearch.Tests/DshEtlSearch.Tests.csproj --verbosity normal
+        run: dotnet test ./backend/DshEtlSearch.Tests/DshEtlSearch.Tests.csproj --verbosity normal
