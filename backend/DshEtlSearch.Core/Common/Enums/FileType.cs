@@ -1,6 +1,12 @@
-namespace DshEtlSearch.Core;
-
-public class FileType
+namespace DshEtlSearch.Core.Common.Enums
 {
-    // TODO: Implement architecture logic here
+    public enum FileType
+    {
+        Unknown,
+        Xml,
+        Json,
+        Pdf,
+        Zip,
+        Txt
+    }
 }

@@ -2,19 +2,23 @@
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master
+      - develop
+      - feature/**
   pull_request:
-    branches: [ "master" ]
+    branches:
+      - master
+      - develop
 
 jobs:
   # ---------------------------------------------------
-  # JOB 1: QDRANT (Runs First)
+  # QDRANT (STANDS ALONE)
   # ---------------------------------------------------
   qdrant-setup:
-    name: Setup Qdrant Database
+    name: Qdrant / Setup
     runs-on: ubuntu-latest
-    
-    # We spin up Qdrant here to verify the image pulls and starts correctly
+
     services:
       qdrant:
         image: qdrant/qdrant:latest
@@ -22,18 +26,54 @@ jobs:
           - 6333:6333
 
     steps:
-      - name: Verify Qdrant is Running
-        run: curl http://localhost:6333
+      - name: Verify Qdrant
+        run: |
+          for i in {1..10}; do
+            curl -s http://localhost:6333 && exit 0
+            sleep 1
+          done
+          exit 1
 
   # ---------------------------------------------------
-  # JOB 2: BACKEND (Runs Second - Depends on Job 1)
+  # BACKEND (VISUALLY GROUPED)
   # ---------------------------------------------------
   backend-build:
-    name: Build & Test Backend
+    name: Backend / Build
     runs-on: ubuntu-latest
-    needs: qdrant-setup  # <--- This enforces the relationship
+    needs: qdrant-setup
 
-    # We need Qdrant again here for the actual integration tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: preview
+
+      - run: dotnet restore ./backend/DshEtlSearch.slnx
+      - run: dotnet build ./backend/DshEtlSearch.slnx --configuration Release --no-restore
+
+
+  backend-unit-tests:
+    name: Backend / Unit Tests
+    runs-on: ubuntu-latest
+    needs: backend-build
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: preview
+
+      - run: dotnet test ./backend/DshEtlSearch.UnitTests/DshEtlSearch.UnitTests.csproj --verbosity normal
+
+
+  backend-integration-tests:
+    name: Backend / Integration Tests
+    runs-on: ubuntu-latest
+    needs: backend-build
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
+
     services:
       qdrant:
         image: qdrant/qdrant:latest
@@ -41,21 +81,10 @@ jobs:
           - 6333:6333
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      # Your requested .NET 10 configuration
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
+          dotnet-quality: preview
 
-      - name: Restore Dependencies
-        run: dotnet restore ./backend/DshEtlSearch.slnx
-
-      - name: Build Solution
-        run: dotnet build ./backend/DshEtlSearch.slnx --no-restore --configuration Release
-
-      - name: Run Tests
-        run: dotnet test ./backend/DshEtlSearch.Tests/DshEtlSearch.Tests.csproj --verbosity normal
+      - run: dotnet test ./backend/DshEtlSearch.IntegrationTests/DshEtlSearch.IntegrationTests.csproj --verbosity normal
