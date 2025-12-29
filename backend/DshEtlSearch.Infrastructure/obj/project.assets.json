@@ -1,11 +1,30 @@
 {
   "version": 3,
   "targets": {
-    "net10.0": {}
+    "net10.0": {
+      "DshEtlSearch.Core/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/DshEtlSearch.Core.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/DshEtlSearch.Core.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "DshEtlSearch.Core/1.0.0": {
+      "type": "project",
+      "path": "../DshEtlSearch.Core/DshEtlSearch.Core.csproj",
+      "msbuildProject": "../DshEtlSearch.Core/DshEtlSearch.Core.csproj"
+    }
+  },
   "projectFileDependencyGroups": {
-    "net10.0": []
+    "net10.0": [
+      "DshEtlSearch.Core >= 1.0.0"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\saiwannaaung\\.nuget\\packages\\": {}
@@ -31,7 +50,11 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "D:\\OA\\dsh-etl-search-ai-2025\\backend\\DshEtlSearch.Core\\DshEtlSearch.Core.csproj": {
+              "projectPath": "D:\\OA\\dsh-etl-search-ai-2025\\backend\\DshEtlSearch.Core\\DshEtlSearch.Core.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

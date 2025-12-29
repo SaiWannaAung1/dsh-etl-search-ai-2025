@@ -393,6 +393,29 @@
         "build": {
           "build/net8.0/xunit.runner.visualstudio.props": {}
         }
+      },
+      "DshEtlSearch.Core/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/DshEtlSearch.Core.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/DshEtlSearch.Core.dll": {}
+        }
+      },
+      "DshEtlSearch.Infrastructure/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "DshEtlSearch.Core": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/DshEtlSearch.Infrastructure.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/DshEtlSearch.Infrastructure.dll": {}
+        }
       }
     }
   },
@@ -903,10 +926,22 @@
         "xunit.runner.visualstudio.3.1.4.nupkg.sha512",
         "xunit.runner.visualstudio.nuspec"
       ]
+    },
+    "DshEtlSearch.Core/1.0.0": {
+      "type": "project",
+      "path": "../DshEtlSearch.Core/DshEtlSearch.Core.csproj",
+      "msbuildProject": "../DshEtlSearch.Core/DshEtlSearch.Core.csproj"
+    },
+    "DshEtlSearch.Infrastructure/1.0.0": {
+      "type": "project",
+      "path": "../DshEtlSearch.Infrastructure/DshEtlSearch.Infrastructure.csproj",
+      "msbuildProject": "../DshEtlSearch.Infrastructure/DshEtlSearch.Infrastructure.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "DshEtlSearch.Core >= 1.0.0",
+      "DshEtlSearch.Infrastructure >= 1.0.0",
       "Microsoft.NET.Test.Sdk >= 17.14.1",
       "coverlet.collector >= 6.0.4",
       "xunit >= 2.9.3",
@@ -937,7 +972,14 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "D:\\OA\\dsh-etl-search-ai-2025\\backend\\DshEtlSearch.Core\\DshEtlSearch.Core.csproj": {
+              "projectPath": "D:\\OA\\dsh-etl-search-ai-2025\\backend\\DshEtlSearch.Core\\DshEtlSearch.Core.csproj"
+            },
+            "D:\\OA\\dsh-etl-search-ai-2025\\backend\\DshEtlSearch.Infrastructure\\DshEtlSearch.Infrastructure.csproj": {
+              "projectPath": "D:\\OA\\dsh-etl-search-ai-2025\\backend\\DshEtlSearch.Infrastructure\\DshEtlSearch.Infrastructure.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
