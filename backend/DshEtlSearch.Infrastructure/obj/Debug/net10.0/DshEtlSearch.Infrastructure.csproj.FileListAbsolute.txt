@@ -1,0 +1,16 @@
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\bin\Debug\net10.0\DshEtlSearch.Infrastructure.deps.json
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\bin\Debug\net10.0\DshEtlSearch.Infrastructure.dll
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\bin\Debug\net10.0\DshEtlSearch.Infrastructure.pdb
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\bin\Debug\net10.0\DshEtlSearch.Core.dll
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\bin\Debug\net10.0\DshEtlSearch.Core.pdb
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSearch.Infrastructure.csproj.AssemblyReference.cache
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSearch.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSearch.Infrastructure.AssemblyInfoInputs.cache
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSearch.Infrastructure.AssemblyInfo.cs
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSearch.Infrastructure.csproj.CoreCompileInputs.cache
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSearch.Infrastructure.sourcelink.json
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSe.0BDA89D1.Up2Date
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSearch.Infrastructure.dll
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\refint\DshEtlSearch.Infrastructure.dll
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\DshEtlSearch.Infrastructure.pdb
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Infrastructure\obj\Debug\net10.0\ref\DshEtlSearch.Infrastructure.dll

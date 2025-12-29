@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "DshEtlSearch.Infrastructure/1.0.0": {
+        "dependencies": {
+          "DshEtlSearch.Core": "1.0.0"
+        },
+        "runtime": {
+          "DshEtlSearch.Infrastructure.dll": {}
+        }
+      },
+      "DshEtlSearch.Core/1.0.0": {
+        "runtime": {
+          "DshEtlSearch.Core.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "DshEtlSearch.Infrastructure/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "DshEtlSearch.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
