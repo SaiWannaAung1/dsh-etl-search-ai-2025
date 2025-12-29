@@ -5,3 +5,4 @@
   <Project Path="DshEtlSearch.IntegrationTests/DshEtlSearch.IntegrationTests.csproj" />
   <Project Path="DshEtlSearch.UnitTests/DshEtlSearch.UnitTests.csproj" />
 </Solution>
+
