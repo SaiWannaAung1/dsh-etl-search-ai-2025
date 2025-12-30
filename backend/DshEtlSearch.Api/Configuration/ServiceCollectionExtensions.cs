@@ -1,6 +1,25 @@
-namespace DshEtlSearch.Api;
+using DshEtlSearch.Core.Interfaces.Infrastructure;
+using DshEtlSearch.Infrastructure.Data.SQLite;
+using Microsoft.EntityFrameworkCore;
 
-public class ServiceCollectionExtensions
+namespace DshEtlSearch.Api.Configuration
 {
-    // TODO: Implement architecture logic here
+    public static class ServiceCollectionExtensions
+    {
+        public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            // 1. Register Database Context (SQLite)
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlite(connectionString, b => b.MigrationsAssembly("DshEtlSearch.Infrastructure")));
+
+            // 2. Register Repositories
+            services.AddScoped<IMetadataRepository, SqliteMetadataRepository>();
+
+            // TODO: Register other services (Parsers, VectorStore) in future steps
+            
+            return services;
+        }
+    }
 }

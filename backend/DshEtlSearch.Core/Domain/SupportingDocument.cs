@@ -10,7 +10,7 @@ namespace DshEtlSearch.Core.Domain
         public string FileName { get; private set; }
         public FileType Type { get; private set; }
         public long SizeBytes { get; private set; }
-        public string StoragePath { get; set; } // Path in blob storage/disk
+        public string? StoragePath { get; set; } // Path in blob storage/disk
 
         public SupportingDocument(Guid datasetId, string fileName, FileType type, long sizeBytes)
         {

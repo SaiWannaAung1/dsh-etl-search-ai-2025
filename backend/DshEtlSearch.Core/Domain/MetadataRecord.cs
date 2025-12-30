@@ -8,10 +8,10 @@ namespace DshEtlSearch.Core.Domain
         public Guid DatasetId { get; set; } // Foreign Key
         
         public string Title { get; set; }
-        public string Abstract { get; set; }
-        public string Authors { get; set; } // Comma separated or JSON array
+        public string? Abstract { get; set; }
+        public string? Authors { get; set; } // Comma separated or JSON array
         public DateTime? PublishedDate { get; set; }
-        public string Keywords { get; set; } // Comma separated
+        public string? Keywords { get; set; } // Comma separated
         
         public MetadataFormat SourceFormat { get; set; }
         
