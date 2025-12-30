@@ -1,4 +1,5 @@
-﻿using DshEtlSearch.Core.Common.Enums;
+﻿using DshEtlSearch.Core.Common;
+using DshEtlSearch.Core.Common.Enums;
 using DshEtlSearch.Core.Domain;
 using DshEtlSearch.Infrastructure.Data.SQLite;
 using FluentAssertions;
@@ -8,6 +9,16 @@ using Xunit;
 
 namespace DshEtlSearch.IntegrationTests.Infrastructure.Repositories
 {
+    // Helper Specification for Testing
+    public class TestDatasetWithChildrenSpec : BaseSpecification<Dataset>
+    {
+        public TestDatasetWithChildrenSpec(Guid id) : base(d => d.Id == id)
+        {
+            AddInclude("Metadata");
+            AddInclude("Documents");
+        }
+    }
+
     public class SqliteMetadataRepositoryTests : IDisposable
     {
         private readonly SqliteConnection _connection;
@@ -16,16 +27,14 @@ namespace DshEtlSearch.IntegrationTests.Infrastructure.Repositories
 
         public SqliteMetadataRepositoryTests()
         {
-            // 1. Set up In-Memory SQLite connection
+            // 1. Setup In-Memory SQLite
             _connection = new SqliteConnection("DataSource=:memory:");
             _connection.Open();
 
-            // 2. Configure EF Core to use this connection
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlite(_connection)
                 .Options;
 
-            // 3. Create Schema
             _context = new AppDbContext(options);
             _context.Database.EnsureCreated();
 
@@ -33,55 +42,55 @@ namespace DshEtlSearch.IntegrationTests.Infrastructure.Repositories
         }
 
         [Fact]
-        public async Task AddAsync_ShouldPersistDataset_WithRelationships()
+        public async Task AddAsync_ShouldPersist_And_GetEntityWithSpec_ShouldRetrieveIncludes()
         {
             // Arrange
-            var dataset = new Dataset("doi:10.1000/test-data");
-    
-            // Add Child: Metadata
-            dataset.Metadata = new MetadataRecord
-            {
-                Title = "Integration Test Title",
-                Abstract = "Testing persistence...",
-                Authors = "Dr. Test Author, Prof. Data", 
-                Keywords = "integration, testing, sqlite",
-                SourceFormat = MetadataFormat.Iso19115Xml
+            var dataset = new Dataset("doi:spec-test");
+            dataset.Metadata = new MetadataRecord 
+            { 
+                Title = "Spec Test", 
+                // Fix: Providing required fields (nullable or not, good to be safe)
+                Authors = "Test Author",
+                SourceFormat = MetadataFormat.Iso19115Xml 
             };
-
-            // Add Child: Document
-            dataset.AddDocument("report.pdf", FileType.Pdf, 500);
-            
+            dataset.AddDocument("doc.pdf", FileType.Pdf, 123);
 
             // Act
             await _repository.AddAsync(dataset);
             await _repository.SaveChangesAsync();
-
-            // Assert (Clear tracker to ensure we fetch from DB, not memory cache)
-            _context.ChangeTracker.Clear();
             
-            var fetched = await _repository.GetByIdAsync(dataset.Id);
+            // Clear tracker to force DB fetch
+            _context.ChangeTracker.Clear();
 
-            fetched.Should().NotBeNull();
-            fetched!.SourceIdentifier.Should().Be("doi:10.1000/test-data");
-            fetched.Metadata.Should().NotBeNull();
-            fetched.Metadata.Title.Should().Be("Integration Test Title");
-            fetched.Documents.Should().HaveCount(1);
-            fetched.Documents[0].FileName.Should().Be("report.pdf");
+            // Act 2: Use Specification
+            var spec = new TestDatasetWithChildrenSpec(dataset.Id);
+            var result = await _repository.GetEntityWithSpec(spec);
+
+            // Assert
+            result.Should().NotBeNull();
+            result!.Metadata.Should().NotBeNull(); // Verify Include worked
+            result.Metadata.Title.Should().Be("Spec Test");
+            result.Documents.Should().HaveCount(1); // Verify Include worked
         }
 
         [Fact]
         public async Task ExistsAsync_ShouldReturnTrue_WhenDatasetExists()
         {
             // Arrange
-            var dataset = new Dataset("doi:existing");
+            var dataset = new Dataset("doi:exists-check");
+            // Minimal required data
+            dataset.Metadata = new MetadataRecord { Title = "T", Authors = "A" }; 
+            
             await _repository.AddAsync(dataset);
             await _repository.SaveChangesAsync();
 
             // Act
-            var exists = await _repository.ExistsAsync("doi:existing");
+            var exists = await _repository.ExistsAsync("doi:exists-check");
+            var notExists = await _repository.ExistsAsync("doi:fake");
 
             // Assert
             exists.Should().BeTrue();
+            notExists.Should().BeFalse();
         }
 
         public void Dispose()

@@ -20,5 +20,10 @@ namespace DshEtlSearch.Core.Interfaces.Infrastructure
         
         // Saves all pending changes to the database context.
         Task SaveChangesAsync();
+        
+        
+        // --- Specification Pattern Methods ---
+        Task<Dataset?> GetEntityWithSpec(ISpecification<Dataset> spec);
+        Task<IEnumerable<Dataset>> ListAsync(ISpecification<Dataset> spec);
     }
 }

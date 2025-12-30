@@ -9,7 +9,7 @@ namespace DshEtlSearch.Core.Domain
         public DateTime IngestedAt { get; private set; }
         
         // Navigation Properties
-        public MetadataRecord Metadata { get; set; }
+        public MetadataRecord? Metadata { get; set; }
         public List<SupportingDocument> Documents { get; private set; } = new();
         public List<EmbeddingVector> Embeddings { get; private set; } = new();
 
