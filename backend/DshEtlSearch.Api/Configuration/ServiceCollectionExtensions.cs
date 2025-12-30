@@ -1,5 +1,10 @@
 using DshEtlSearch.Core.Interfaces.Infrastructure;
+using DshEtlSearch.Core.Interfaces.Application; // For IEtlOrchestrator
 using DshEtlSearch.Infrastructure.Data.SQLite;
+using DshEtlSearch.Infrastructure.FileProcessing.Downloader; // For CehDatasetDownloader
+using DshEtlSearch.Infrastructure.FileProcessing.Extractor;  // For ZipExtractionService
+using DshEtlSearch.Infrastructure.FileProcessing.Parsers;    // For MetadataParserFactory
+using DshEtlSearch.Infrastructure.Services;                  // For EtlOrchestrator
 using Microsoft.EntityFrameworkCore;
 
 namespace DshEtlSearch.Api.Configuration
@@ -17,14 +22,17 @@ namespace DshEtlSearch.Api.Configuration
             // 2. Register Repositories
             services.AddScoped<IMetadataRepository, SqliteMetadataRepository>();
 
-            // Register Parsers & Factory
+            // 3. Register Parsers & Factory
             services.AddSingleton<MetadataParserFactory>();
 
-            // Register File Processing
-            services.AddHttpClient<IDownloader, CehDatasetDownloader>(); // Uses HttpClient Factory
+            // 4. Register File Processing
+            // IDownloader maps to CehDatasetDownloader
+            services.AddHttpClient<IDownloader, CehDatasetDownloader>(); 
+            
+            // IExtractionService maps to ZipExtractionService
             services.AddScoped<IExtractionService, ZipExtractionService>();
 
-            // Register Orchestrator
+            // 5. Register Orchestrator
             services.AddScoped<IEtlOrchestrator, EtlOrchestrator>();
             
             return services;
