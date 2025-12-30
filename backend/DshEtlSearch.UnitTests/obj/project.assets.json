@@ -275,6 +275,24 @@
           "buildTransitive/net8.0/_._": {}
         }
       },
+      "Microsoft.Extensions.Http/2.1.1": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "2.1.1",
+          "Microsoft.Extensions.Logging": "2.1.1",
+          "Microsoft.Extensions.Options": "2.1.1"
+        },
+        "compile": {
+          "lib/netstandard2.0/Microsoft.Extensions.Http.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/Microsoft.Extensions.Http.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Microsoft.Extensions.Logging/10.0.1": {
         "type": "package",
         "dependencies": {
@@ -625,6 +643,23 @@
         },
         "runtime": {
           "lib/net6.0/Moq.dll": {}
+        }
+      },
+      "Moq.Contrib.HttpClient/1.4.0": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Http": "2.1.1",
+          "Moq": "[4.8.0, 5.0.0)"
+        },
+        "compile": {
+          "lib/netstandard2.0/Moq.Contrib.HttpClient.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/Moq.Contrib.HttpClient.dll": {
+            "related": ".xml"
+          }
         }
       },
       "Newtonsoft.Json/13.0.3": {
@@ -1398,6 +1433,19 @@
         "useSharedDesignerContext.txt"
       ]
     },
+    "Microsoft.Extensions.Http/2.1.1": {
+      "sha512": "GOly249seL3HL2+lgfLWHirsggRwK4EmSa6zUb+sPbgXHN+f9w/y/6XV3DPjYjtyt3v38FkPTD6odPcJJKtvlg==",
+      "type": "package",
+      "path": "microsoft.extensions.http/2.1.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/netstandard2.0/Microsoft.Extensions.Http.dll",
+        "lib/netstandard2.0/Microsoft.Extensions.Http.xml",
+        "microsoft.extensions.http.2.1.1.nupkg.sha512",
+        "microsoft.extensions.http.nuspec"
+      ]
+    },
     "Microsoft.Extensions.Logging/10.0.1": {
       "sha512": "9ItMpMLFZFJFqCuHLLbR3LiA4ahA8dMtYuXpXl2YamSDWZhYS9BruPprkftY0tYi2bQ0slNrixdFm+4kpz1g5w==",
       "type": "package",
@@ -1794,6 +1842,19 @@
         "readme.md"
       ]
     },
+    "Moq.Contrib.HttpClient/1.4.0": {
+      "sha512": "lekCcCXO6dwH/Ef9h9vPLVE8y0401dwI/x67+oFkcx+DSgi10DlPL5GUBwK8XEr2PMIsQpptVteJOH51kxnqfQ==",
+      "type": "package",
+      "path": "moq.contrib.httpclient/1.4.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/netstandard2.0/Moq.Contrib.HttpClient.dll",
+        "lib/netstandard2.0/Moq.Contrib.HttpClient.xml",
+        "moq.contrib.httpclient.1.4.0.nupkg.sha512",
+        "moq.contrib.httpclient.nuspec"
+      ]
+    },
     "Newtonsoft.Json/13.0.3": {
       "sha512": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ==",
       "type": "package",
@@ -2107,6 +2168,7 @@
       "FluentAssertions >= 8.8.0",
       "Microsoft.NET.Test.Sdk >= 17.14.1",
       "Moq >= 4.20.72",
+      "Moq.Contrib.HttpClient >= 1.4.0",
       "coverlet.collector >= 6.0.4",
       "xunit >= 2.9.3",
       "xunit.runner.visualstudio >= 3.1.4"
@@ -2173,6 +2235,10 @@
           "Moq": {
             "target": "Package",
             "version": "[4.20.72, )"
+          },
+          "Moq.Contrib.HttpClient": {
+            "target": "Package",
+            "version": "[1.4.0, )"
           },
           "coverlet.collector": {
             "target": "Package",

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DshEtlSearch.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cb8a47c2ac85ed726e6c45ff277becc26ed8f5c3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8b7a9adba13b86ae8452ffa17648654de09bd1b8")]
 [assembly: System.Reflection.AssemblyProductAttribute("DshEtlSearch.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DshEtlSearch.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

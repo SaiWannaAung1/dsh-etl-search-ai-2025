@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DshEtlSearch.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+075691bf4f8a0b475b3402d8fec6b665cd385da8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8b7a9adba13b86ae8452ffa17648654de09bd1b8")]
 [assembly: System.Reflection.AssemblyProductAttribute("DshEtlSearch.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DshEtlSearch.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
