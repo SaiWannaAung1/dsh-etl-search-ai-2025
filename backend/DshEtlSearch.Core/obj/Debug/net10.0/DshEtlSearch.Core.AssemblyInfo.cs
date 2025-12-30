@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DshEtlSearch.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cb8a47c2ac85ed726e6c45ff277becc26ed8f5c3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+075691bf4f8a0b475b3402d8fec6b665cd385da8")]
 [assembly: System.Reflection.AssemblyProductAttribute("DshEtlSearch.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DshEtlSearch.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

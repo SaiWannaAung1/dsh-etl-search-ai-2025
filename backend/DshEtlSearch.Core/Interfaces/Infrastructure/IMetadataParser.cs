@@ -1,6 +1,15 @@
-namespace DshEtlSearch.Core;
+using DshEtlSearch.Core.Common;
+using DshEtlSearch.Core.Domain;
 
-public class IMetadataParser
+namespace DshEtlSearch.Core.Interfaces.Infrastructure
 {
-    // TODO: Implement architecture logic here
+    public interface IMetadataParser
+    {
+        /// <summary>
+        /// Parses a raw data stream into a standardized MetadataRecord.
+        /// </summary>
+        /// <param name="content">The file stream (XML, JSON, etc.)</param>
+        /// <returns>A Result containing the parsed record or an error message.</returns>
+        Task<Result<MetadataRecord>> ParseAsync(Stream content);
+    }
 }
