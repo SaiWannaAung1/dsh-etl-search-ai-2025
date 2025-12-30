@@ -17,7 +17,15 @@ namespace DshEtlSearch.Api.Configuration
             // 2. Register Repositories
             services.AddScoped<IMetadataRepository, SqliteMetadataRepository>();
 
-            // TODO: Register other services (Parsers, VectorStore) in future steps
+            // Register Parsers & Factory
+            services.AddSingleton<MetadataParserFactory>();
+
+            // Register File Processing
+            services.AddHttpClient<IDownloader, CehDatasetDownloader>(); // Uses HttpClient Factory
+            services.AddScoped<IExtractionService, ZipExtractionService>();
+
+            // Register Orchestrator
+            services.AddScoped<IEtlOrchestrator, EtlOrchestrator>();
             
             return services;
         }
