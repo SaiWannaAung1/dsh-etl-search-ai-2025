@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DshEtlSearch.UnitTests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+66e834041312b8488f6cddaddb8d1dcfe5a96521")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f9a3904ac18aa792fbd99ffbd0dcc53cd8c975c7")]
 [assembly: System.Reflection.AssemblyProductAttribute("DshEtlSearch.UnitTests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DshEtlSearch.UnitTests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

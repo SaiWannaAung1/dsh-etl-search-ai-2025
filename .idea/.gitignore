@@ -2,11 +2,9 @@
 /shelf/
 /workspace.xml
 
-# Rider ignored files
-/.idea.dsh-etl-search-ai-2025.iml
-/modules.xml
-/contentModel.xml
-/projectSettingsUpdater.xml
+# IDE Settings
+# This ignores .idea folders anywhere (including backend/.idea/)
+.idea/
 
 # Ignored default folder with query files
 /queries/
@@ -18,11 +16,11 @@
 # Editor-based HTTP Client requests
 /httpRequests/
 
-# --- C# / .NET Build Folders (ADDED) ---
+# --- C# / .NET Build Folders ---
 [Bb]in/
 [Oo]bj/
 
-# --- Other Common C# temporary files (Recommended) ---
+# --- Other Common C# temporary files ---
 .vs/
 *.user
 *.suo

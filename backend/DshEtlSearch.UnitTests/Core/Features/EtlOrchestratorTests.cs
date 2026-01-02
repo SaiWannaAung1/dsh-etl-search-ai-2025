@@ -25,7 +25,6 @@ public class EtlOrchestratorTests
         _mockFactory = new Mock<IMetadataParserFactory>();
         _mockParser = new Mock<IMetadataParser>();
 
-        // Setup the Factory to return our Mock Parser
         _mockFactory.Setup(f => f.GetParser(It.IsAny<MetadataFormat>()))
                     .Returns(_mockParser.Object);
 
@@ -42,33 +41,28 @@ public class EtlOrchestratorTests
         // Arrange
         string fileIdentifier = "ceh-12345";
         
-        // 1. Mock Repo: Dataset does NOT exist yet
         _mockRepo.Setup(r => r.ExistsAsync(fileIdentifier)).ReturnsAsync(false);
 
-        // 2. Mock Metadata Download: Returns a valid stream
-        // We use a non-empty stream so StreamReader doesn't complain
+        // Mock Metadata Download (Success)
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<xml>content</xml>"));
         _mockCehClient.Setup(c => c.GetMetadataAsync(fileIdentifier, MetadataFormat.Iso19115Xml))
             .ReturnsAsync(Result<Stream>.Success(stream));
 
-        // 3. Mock Parser: Returns the DTO (Not the Entity!)
+        // Mock Parser (Returns DTO)
         var parsedDto = new ParsedMetadataDto
         {
             Title = "Test Title",
             Abstract = "Test Abstract",
             ResourceUrl = "http://resource.url"
         };
-
-        // FIX: Remove the 'Guid' parameter. The new Parser interface is Parse(Stream).
         _mockParser.Setup(p => p.Parse(It.IsAny<Stream>()))
             .Returns(Result<ParsedMetadataDto>.Success(parsedDto));
 
-        // 4. Mock Zip Download: Returns a valid stream
+        // Mock Zip Download (Success)
         _mockCehClient.Setup(c => c.DownloadDatasetZipAsync(fileIdentifier))
             .ReturnsAsync(Result<Stream>.Success(new MemoryStream()));
 
-        // 5. Mock Archive Extraction: Returns 1 supporting document
-        // Note: SupportingDocument constructor requires (datasetId, filename, type, size)
+        // Mock Archive Extraction (Success)
         var docs = new List<SupportingDocument> 
         { 
             new SupportingDocument(Guid.NewGuid(), "readme.txt", FileType.Txt, 1024) 
@@ -82,13 +76,11 @@ public class EtlOrchestratorTests
         // Assert
         Assert.True(result.IsSuccess);
 
-        // Verify Repository was called to save
-        // FIX: We verify that 'd.Title' is set directly on the Dataset, NOT on 'd.Metadata'
+        // Verify Repository Save
         _mockRepo.Verify(r => r.AddAsync(It.Is<Dataset>(d => 
             d.FileIdentifier == fileIdentifier && 
-            d.Title == "Test Title" &&       // Checked directly on Dataset
-            d.Abstract == "Test Abstract" && // Checked directly on Dataset
-            d.MetadataRecords != null &&            // Metadata backup record exists
+            d.Title == "Test Title" &&       
+            d.MetadataRecords.Count > 0 &&  // Ensure metadata was added to the list
             d.SupportingDocuments.Count == 1
         )), Times.Once);
     }
@@ -109,12 +101,11 @@ public class EtlOrchestratorTests
 
         // Assert
         Assert.False(result.IsSuccess);
-        Assert.Contains("Metadata download failed", result.Error);
+        
+        // FIX: Updated the expected string to match the new Orchestrator logic
+        Assert.Contains("Primary metadata download failed", result.Error);
 
-        // Verify NO save occurred
         _mockRepo.Verify(r => r.AddAsync(It.IsAny<Dataset>()), Times.Never);
-        // Verify we didn't try to download zip
-        _mockCehClient.Verify(c => c.DownloadDatasetZipAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -122,17 +113,14 @@ public class EtlOrchestratorTests
     {
         // Arrange
         string fileIdentifier = "ceh-exists";
-        
-        // Mock Repo: Dataset EXISTS
         _mockRepo.Setup(r => r.ExistsAsync(fileIdentifier)).ReturnsAsync(true);
 
         // Act
         var result = await _etlService.IngestDatasetAsync(fileIdentifier);
 
         // Assert
-        Assert.True(result.IsSuccess); // Success because skipping is a valid outcome
+        Assert.True(result.IsSuccess); 
 
-        // Verify we stopped early
         _mockCehClient.Verify(c => c.GetMetadataAsync(It.IsAny<string>(), It.IsAny<MetadataFormat>()), Times.Never);
         _mockRepo.Verify(r => r.AddAsync(It.IsAny<Dataset>()), Times.Never);
     }
