@@ -1,25 +1,31 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DshEtlSearch.Core.Common.Enums;
 
 namespace DshEtlSearch.Core.Domain
 {
     public class MetadataRecord
     {
-        public Guid Id { get; set; }
+        [Key]
+        public Guid Id { get; set; } = Guid.NewGuid();
+
         public Guid DatasetId { get; set; }
         
-        // This ensures the compiler enforces initialization when creating the object.
-        public required string Title { get; set; } 
+        [ForeignKey(nameof(DatasetId))]
+        public Dataset? Dataset { get; set; }
+
+        // Stores "ISO19115_XML", "JsonExpanded", "RdfTurtle", etc.
+        public string Format { get; set; }     
+        public string RawContent { get; set; } 
         
-        public string? Abstract { get; set; }
-        public string? Authors { get; set; } 
-        public DateTime? PublishedDate { get; set; }
-        public string? Keywords { get; set; } 
-        
-        public MetadataFormat SourceFormat { get; set; }
-        
-        public string ToEmbeddingText()
+        public MetadataRecord() { }
+
+        public MetadataRecord(Guid datasetId, string format, string rawContent)
         {
-            return $"Title: {Title}\nAbstract: {Abstract ?? ""}\nKeywords: {Keywords ?? ""}";
+            Id = Guid.NewGuid();
+            DatasetId = datasetId;
+            Format = format;
+            RawContent = rawContent;
         }
     }
 }

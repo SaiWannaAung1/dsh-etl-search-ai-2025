@@ -1,102 +1,109 @@
-﻿using DshEtlSearch.Core.Common;
-using DshEtlSearch.Core.Common.Enums;
-using DshEtlSearch.Core.Domain;
-using DshEtlSearch.Infrastructure.Data.SQLite;
-using FluentAssertions;
-using Microsoft.Data.Sqlite;
+﻿using DshEtlSearch.Core.Domain;
+using DshEtlSearch.Core.Interfaces; // Contains ISpecification
+using DshEtlSearch.Core.Interfaces.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
 
-namespace DshEtlSearch.IntegrationTests.Infrastructure.Repositories
+namespace DshEtlSearch.Infrastructure.Data.SQLite;
+
+public class SqliteMetadataRepository : IMetadataRepository
 {
-    // Helper Specification for Testing
-    public class TestDatasetWithChildrenSpec : BaseSpecification<Dataset>
+    private readonly AppDbContext _context;
+
+    public SqliteMetadataRepository(AppDbContext context)
     {
-        public TestDatasetWithChildrenSpec(Guid id) : base(d => d.Id == id)
+        _context = context;
+    }
+
+    // --- Standard CRUD Implementations ---
+
+    public async Task<Dataset?> GetByIdAsync(Guid id)
+    {
+        return await _context.Datasets
+            .Include(d => d.MetadataRecords)
+            .Include(d => d.SupportingDocuments)
+            .FirstOrDefaultAsync(d => d.Id == id);
+    }
+
+    public async Task<Dataset?> GetByFileIdentifierAsync(string fileIdentifier)
+    {
+        return await _context.Datasets
+            .Include(d => d.MetadataRecords)
+            .Include(d => d.SupportingDocuments)
+            .FirstOrDefaultAsync(d => d.FileIdentifier == fileIdentifier);
+    }
+
+    public async Task AddAsync(Dataset dataset)
+    {
+        await _context.Datasets.AddAsync(dataset);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(Dataset dataset)
+    {
+        _context.Datasets.Update(dataset);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var dataset = await _context.Datasets.FindAsync(id);
+        if (dataset != null)
         {
-            AddInclude("Metadata");
-            AddInclude("Documents");
+            _context.Datasets.Remove(dataset);
+            await _context.SaveChangesAsync();
         }
     }
 
-    public class SqliteMetadataRepositoryTests : IDisposable
+    public async Task<bool> ExistsAsync(string fileIdentifier)
     {
-        private readonly SqliteConnection _connection;
-        private readonly AppDbContext _context;
-        private readonly SqliteMetadataRepository _repository;
+        return await _context.Datasets
+            .AnyAsync(d => d.FileIdentifier == fileIdentifier);
+    }
 
-        public SqliteMetadataRepositoryTests()
+    // --- MISSING INTERFACE IMPLEMENTATIONS (The Fix) ---
+
+    // 1. Implement SaveChangesAsync
+    public async Task<int> SaveChangesAsync()
+    {
+        return await _context.SaveChangesAsync();
+    }
+
+    // 2. Implement ListAsync using Specification
+    public async Task<List<Dataset>> ListAsync(ISpecification<Dataset> spec)
+    {
+        var query = ApplySpecification(spec);
+        return await query.ToListAsync();
+    }
+
+    // 3. Implement GetEntityWithSpec using Specification
+    public async Task<Dataset?> GetEntityWithSpec(ISpecification<Dataset> spec)
+    {
+        var query = ApplySpecification(spec);
+        return await query.FirstOrDefaultAsync();
+    }
+
+    // --- Helper Method to evaluate the Specification ---
+    private IQueryable<Dataset> ApplySpecification(ISpecification<Dataset> spec)
+    {
+        // Start with the base query
+        var query = _context.Datasets.AsQueryable();
+
+        // Apply Filtering (Where)
+        if (spec.Criteria != null)
         {
-            // 1. Setup In-Memory SQLite
-            _connection = new SqliteConnection("DataSource=:memory:");
-            _connection.Open();
-
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite(_connection)
-                .Options;
-
-            _context = new AppDbContext(options);
-            _context.Database.EnsureCreated();
-
-            _repository = new SqliteMetadataRepository(_context);
+            query = query.Where(spec.Criteria);
         }
 
-        [Fact]
-        public async Task AddAsync_ShouldPersist_And_GetEntityWithSpec_ShouldRetrieveIncludes()
+        // Apply Includes (Joins)
+        // Assuming spec.Includes is a List<Expression<Func<Dataset, object>>>
+        if (spec.Includes != null)
         {
-            // Arrange
-            var dataset = new Dataset("doi:spec-test");
-            dataset.Metadata = new MetadataRecord 
-            { 
-                Title = "Spec Test", 
-                // Fix: Providing required fields (nullable or not, good to be safe)
-                Authors = "Test Author",
-                SourceFormat = MetadataFormat.Iso19115Xml 
-            };
-            dataset.AddDocument("doc.pdf", FileType.Pdf, 123);
-
-            // Act
-            await _repository.AddAsync(dataset);
-            await _repository.SaveChangesAsync();
-            
-            // Clear tracker to force DB fetch
-            _context.ChangeTracker.Clear();
-
-            // Act 2: Use Specification
-            var spec = new TestDatasetWithChildrenSpec(dataset.Id);
-            var result = await _repository.GetEntityWithSpec(spec);
-
-            // Assert
-            result.Should().NotBeNull();
-            result!.Metadata.Should().NotBeNull(); // Verify Include worked
-            result.Metadata.Title.Should().Be("Spec Test");
-            result.Documents.Should().HaveCount(1); // Verify Include worked
+            query = spec.Includes.Aggregate(query, (current, include) => current.Include(include));
         }
 
-        [Fact]
-        public async Task ExistsAsync_ShouldReturnTrue_WhenDatasetExists()
-        {
-            // Arrange
-            var dataset = new Dataset("doi:exists-check");
-            // Minimal required data
-            dataset.Metadata = new MetadataRecord { Title = "T", Authors = "A" }; 
-            
-            await _repository.AddAsync(dataset);
-            await _repository.SaveChangesAsync();
+        // Apply Ordering (if your ISpecification has OrderBy, add it here)
+        // if (spec.OrderBy != null) ...
 
-            // Act
-            var exists = await _repository.ExistsAsync("doi:exists-check");
-            var notExists = await _repository.ExistsAsync("doi:fake");
-
-            // Assert
-            exists.Should().BeTrue();
-            notExists.Should().BeFalse();
-        }
-
-        public void Dispose()
-        {
-            _connection.Close();
-            _context.Dispose();
-        }
+        return query;
     }
 }

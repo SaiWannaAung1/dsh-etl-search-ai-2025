@@ -10,6 +10,7 @@ namespace DshEtlSearch.Core.Interfaces.Infrastructure
         /// </summary>
         /// <param name="content">The file stream (XML, JSON, etc.)</param>
         /// <returns>A Result containing the parsed record or an error message.</returns>
-        Task<Result<MetadataRecord>> ParseAsync(Stream content);
+        Result<ParsedMetadataDto> Parse(Stream content);        
+        
     }
 }

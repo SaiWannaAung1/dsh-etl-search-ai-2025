@@ -3,10 +3,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DshEtlSearch.Infrastructure.Data.SQLite
 {
-    /// <summary>
-    /// Represents the session with the SQLite database.
-    /// Configures the schema and relationships for Entity Framework Core.
-    /// </summary>
     public class AppDbContext : DbContext
     {
         public DbSet<Dataset> Datasets { get; set; }
@@ -21,31 +17,32 @@ namespace DshEtlSearch.Infrastructure.Data.SQLite
         {
             base.OnModelCreating(modelBuilder);
 
-            // 1. Configure Dataset (Root Aggregate)
+            // 1. Configure Dataset
             modelBuilder.Entity<Dataset>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.SourceIdentifier).IsUnique(); // Ensure DOIs are unique
-                entity.Property(e => e.SourceIdentifier).IsRequired();
+                
+                entity.HasIndex(e => e.FileIdentifier).IsUnique(); 
+                entity.Property(e => e.FileIdentifier).IsRequired();
+                
+                // Ignore Embeddings for SQLite (they go to Vector DB)
+                entity.Ignore(d => d.Embeddings);
             });
 
-            // 2. Configure 1:1 Relationship (Dataset <-> MetadataRecord)
+            // 2. Configure 1:N Relationship (Dataset <-> MetadataRecords)
+            // FIX: Changed from HasOne (1:1) to HasMany (1:N)
             modelBuilder.Entity<Dataset>()
-                .HasOne(d => d.Metadata)
-                .WithOne()
-                .HasForeignKey<MetadataRecord>(m => m.DatasetId)
-                .OnDelete(DeleteBehavior.Cascade); // Deleting Dataset deletes Metadata
+                .HasMany(d => d.MetadataRecords) // Use the List property
+                .WithOne(m => m.Dataset)         // Link back to Parent
+                .HasForeignKey(m => m.DatasetId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // 3. Configure 1:N Relationship (Dataset <-> SupportingDocuments)
             modelBuilder.Entity<Dataset>()
-                .HasMany(d => d.Documents)
+                .HasMany(d => d.SupportingDocuments)
                 .WithOne()
                 .HasForeignKey(doc => doc.DatasetId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // 4. Ignore EmbeddingVectors in SQLite (They go to Vector Store/Qdrant)
-            modelBuilder.Entity<Dataset>()
-                .Ignore(d => d.Embeddings);
         }
     }
 }

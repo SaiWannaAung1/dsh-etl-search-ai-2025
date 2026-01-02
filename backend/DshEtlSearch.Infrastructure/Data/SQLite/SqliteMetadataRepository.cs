@@ -1,62 +1,101 @@
 using DshEtlSearch.Core.Domain;
-using DshEtlSearch.Core.Interfaces;
+using DshEtlSearch.Core.Interfaces; // Contains ISpecification
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-namespace DshEtlSearch.Infrastructure.Data.SQLite
+namespace DshEtlSearch.Infrastructure.Data.SQLite;
+
+public class SqliteMetadataRepository : IMetadataRepository
 {
-	/// <summary>
-    /// Implementation of IMetadataRepository using SQLite and EF Core.
-    /// </summary>
-    public class SqliteMetadataRepository : IMetadataRepository
+    private readonly AppDbContext _context;
+
+    public SqliteMetadataRepository(AppDbContext context)
     {
-        private readonly AppDbContext _context;
+        _context = context;
+    }
 
-        public SqliteMetadataRepository(AppDbContext context)
-        {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
-        }
+    // --- Standard CRUD Implementations ---
 
-        public async Task AddAsync(Dataset dataset)
-        {
-            if (dataset == null) throw new ArgumentNullException(nameof(dataset));
-            await _context.Datasets.AddAsync(dataset);
-        }
+    public async Task<Dataset?> GetByIdAsync(Guid id)
+    {
+        return await _context.Datasets
+            // FIX: Changed 'Metadata' to 'MetadataRecords'
+            .Include(d => d.MetadataRecords) 
+            .Include(d => d.SupportingDocuments)
+            .FirstOrDefaultAsync(d => d.Id == id);
+    }
 
-       
-        public async Task<bool> ExistsAsync(string sourceIdentifier)
-        {
-            if (string.IsNullOrWhiteSpace(sourceIdentifier)) return false;
-            return await _context.Datasets.AnyAsync(d => d.SourceIdentifier == sourceIdentifier);
-        }
+    public async Task<Dataset?> GetByFileIdentifierAsync(string fileIdentifier)
+    {
+        return await _context.Datasets
+            // FIX: Changed 'Metadata' to 'MetadataRecords'
+            .Include(d => d.MetadataRecords)
+            .Include(d => d.SupportingDocuments)
+            .FirstOrDefaultAsync(d => d.FileIdentifier == fileIdentifier);
+    }
 
-        public async Task<Dataset?> GetByIdAsync(Guid id)
-        {
-            return await _context.Datasets.FindAsync(id);
-        }
+    public async Task AddAsync(Dataset dataset)
+    {
+        await _context.Datasets.AddAsync(dataset);
+        await _context.SaveChangesAsync();
+    }
 
-        public async Task SaveChangesAsync()
+    public async Task UpdateAsync(Dataset dataset)
+    {
+        _context.Datasets.Update(dataset);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var dataset = await _context.Datasets.FindAsync(id);
+        if (dataset != null)
         {
+            _context.Datasets.Remove(dataset);
             await _context.SaveChangesAsync();
         }
+    }
 
-        // --- Specification Evaluator Logic ---
+    public async Task<bool> ExistsAsync(string fileIdentifier)
+    {
+        return await _context.Datasets
+            .AnyAsync(d => d.FileIdentifier == fileIdentifier);
+    }
 
-        public async Task<Dataset?> GetEntityWithSpec(ISpecification<Dataset> spec)
+    // --- Specification Implementations ---
+
+    public async Task<int> SaveChangesAsync()
+    {
+        return await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<Dataset>> ListAsync(ISpecification<Dataset> spec)
+    {
+        var query = ApplySpecification(spec);
+        return await query.ToListAsync();
+    }
+
+    public async Task<Dataset?> GetEntityWithSpec(ISpecification<Dataset> spec)
+    {
+        var query = ApplySpecification(spec);
+        return await query.FirstOrDefaultAsync();
+    }
+
+    // --- Helper Method ---
+    private IQueryable<Dataset> ApplySpecification(ISpecification<Dataset> spec)
+    {
+        var query = _context.Datasets.AsQueryable();
+
+        if (spec.Criteria != null)
         {
-            return await ApplySpecification(spec).FirstOrDefaultAsync();
+            query = query.Where(spec.Criteria);
         }
 
-        public async Task<IEnumerable<Dataset>> ListAsync(ISpecification<Dataset> spec)
+        if (spec.Includes != null)
         {
-            return await ApplySpecification(spec).ToListAsync();
+            query = spec.Includes.Aggregate(query, (current, include) => current.Include(include));
         }
 
-        private IQueryable<Dataset> ApplySpecification(ISpecification<Dataset> spec)
-        {
-            // Applies the criteria (Where) and Includes (Joins) defined in the Spec
-            return SpecificationEvaluator<Dataset>.GetQuery(_context.Datasets.AsQueryable(), spec);
-        }
+        return query;
     }
 }
-

@@ -1,29 +1,22 @@
 using DshEtlSearch.Core.Domain;
 
-namespace DshEtlSearch.Core.Interfaces.Infrastructure
+namespace DshEtlSearch.Core.Interfaces.Infrastructure;
+
+public interface IMetadataRepository
 {
-    /// <summary>
-    /// Defines the contract for persisting Dataset metadata and relationships.
-    /// Follows the Repository Pattern to abstract data access details.
-    /// </summary>
-    public interface IMetadataRepository
-    {
-     
-        // Retrieves a dataset by its unique ID, including metadata and documents.
-        Task<Dataset?> GetByIdAsync(Guid id);
+    // --- Standard CRUD ---
+    Task<Dataset?> GetByIdAsync(Guid id);
+    Task<Dataset?> GetByFileIdentifierAsync(string fileIdentifier);
+    Task AddAsync(Dataset dataset);
+    Task UpdateAsync(Dataset dataset);
+    Task DeleteAsync(Guid id);
+    Task<bool> ExistsAsync(string fileIdentifier);
 
-        // Checks if a dataset with the given source identifier (e.g., DOI) already exists.
-        Task<bool> ExistsAsync(string sourceIdentifier);
-
-        // Persists a new dataset to the database.
-        Task AddAsync(Dataset dataset);
-        
-        // Saves all pending changes to the database context.
-        Task SaveChangesAsync();
-        
-        
-        // --- Specification Pattern Methods ---
-        Task<Dataset?> GetEntityWithSpec(ISpecification<Dataset> spec);
-        Task<IEnumerable<Dataset>> ListAsync(ISpecification<Dataset> spec);
-    }
+    // --- Specification Pattern Methods ---
+    // These allow advanced querying (e.g., search filters) without changing the interface
+    Task<List<Dataset>> ListAsync(ISpecification<Dataset> spec);
+    Task<Dataset?> GetEntityWithSpec(ISpecification<Dataset> spec);
+    
+    // --- Transaction Management ---
+    Task<int> SaveChangesAsync();
 }

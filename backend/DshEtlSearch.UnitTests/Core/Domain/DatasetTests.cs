@@ -2,7 +2,7 @@
 using DshEtlSearch.Core.Domain;
 using Xunit;
 
-namespace DshEtlSearch.UnitTests.Core.Domain
+namespace DshEtlSearch.Tests.Unit.Core.Domain
 {
     public class DatasetTests
     {
@@ -10,41 +10,51 @@ namespace DshEtlSearch.UnitTests.Core.Domain
         public void Constructor_ShouldInitializeIdAndDate()
         {
             // Arrange & Act
-            var dataset = new Dataset("doi:10.1234/test");
+            // FIX: Updated to use the new constructor (Requires Title)
+            var dataset = new Dataset("doi:10.1234/test", "Test Title");
 
             // Assert
             Assert.NotEqual(Guid.Empty, dataset.Id);
-            Assert.Equal("doi:10.1234/test", dataset.SourceIdentifier);
+            Assert.Equal("doi:10.1234/test", dataset.FileIdentifier);
+            Assert.Equal("Test Title", dataset.Title); // Verify Title is set
             Assert.True(dataset.IngestedAt <= DateTime.UtcNow);
         }
 
         [Fact]
-        public void Constructor_ShouldThrowException_WhenIdentifierIsNull()
+        public void Constructor_ShouldThrowException_WhenIdentifierOrTitleMissing()
         {
             // Assert
-            // FIX: Use 'null!' to tell the compiler we are intentionally testing invalid null input
-            Assert.Throws<ArgumentNullException>(() => new Dataset(null!));
+            // Test missing ID
+            Assert.Throws<ArgumentException>(() => new Dataset(null!, "Title"));
+            
+            // Test missing Title (Your new requirement)
+            Assert.Throws<ArgumentException>(() => new Dataset("id", null!));
         }
 
         [Fact]
         public void AddDocument_ShouldAddDocumentToList_WithCorrectDetails()
         {
             // Arrange
-            var dataset = new Dataset("doi:test");
+            var dataset = new Dataset("doi:test", "Test Title");
             var fileName = "report.pdf";
             var size = 1024L;
 
+            // FIX: Create the document object manually first
+            // (Because you removed the helper method that took strings)
+            var doc = new SupportingDocument(dataset.Id, fileName, FileType.Pdf, size);
+
             // Act
-            dataset.AddDocument(fileName, FileType.Pdf, size);
+            dataset.AddDocument(doc);
 
             // Assert
-            Assert.Single(dataset.Documents); // List should have 1 item
+            Assert.Single(dataset.SupportingDocuments); 
             
-            var doc = dataset.Documents[0];
-            Assert.Equal(fileName, doc.FileName);
-            Assert.Equal(FileType.Pdf, doc.Type);
-            Assert.Equal(size, doc.SizeBytes);
-            Assert.Equal(dataset.Id, doc.DatasetId); // Verify Foreign Key link
+            var addedDoc = dataset.SupportingDocuments[0];
+            Assert.Equal(fileName, addedDoc.FileName);
+            Assert.Equal(FileType.Pdf, addedDoc.Type);
+            Assert.Equal(size, addedDoc.SizeBytes);
+            Assert.Equal(dataset.Id, addedDoc.DatasetId); 
+            Assert.NotNull(dataset.LastUpdated); // Check if LastUpdated was set
         }
     }
 }

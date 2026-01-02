@@ -1,22 +1,31 @@
 ﻿using System.Linq.Expressions;
 using DshEtlSearch.Core.Interfaces;
 
-namespace DshEtlSearch.Core.Common
+namespace DshEtlSearch.Core.Common;
+
+public class BaseSpecification<T> : ISpecification<T>
 {
-    public abstract class BaseSpecification<T> : ISpecification<T>
+    public Expression<Func<T, bool>>? Criteria { get; }
+    
+    // Initialize the list so it's never null
+    public List<Expression<Func<T, object>>> Includes { get; } = new();
+    public List<string> IncludeStrings { get; } = new();
+    
+    public Expression<Func<T, object>>? OrderBy { get; private set; }
+    public Expression<Func<T, object>>? OrderByDescending { get; private set; }
+
+    public BaseSpecification()
     {
-        public Expression<Func<T, bool>> Criteria { get; }
-        public List<string> IncludeStrings { get; } = new List<string>();
+    }
 
-        protected BaseSpecification(Expression<Func<T, bool>> criteria)
-        {
-            Criteria = criteria;
-        }
+    public BaseSpecification(Expression<Func<T, bool>> criteria)
+    {
+        Criteria = criteria;
+    }
 
-        // Helper to add "Include" statements easily
-        protected void AddInclude(string includeString)
-        {
-            IncludeStrings.Add(includeString);
-        }
+    // Helper method to add Includes easily
+    protected void AddInclude(Expression<Func<T, object>> includeExpression)
+    {
+        Includes.Add(includeExpression);
     }
 }

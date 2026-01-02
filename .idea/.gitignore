@@ -1,15 +1,30 @@
 ﻿# Default ignored files
 /shelf/
 /workspace.xml
+
 # Rider ignored files
 /.idea.dsh-etl-search-ai-2025.iml
 /modules.xml
 /contentModel.xml
 /projectSettingsUpdater.xml
+
 # Ignored default folder with query files
 /queries/
+
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+
 # Editor-based HTTP Client requests
 /httpRequests/
+
+# --- C# / .NET Build Folders (ADDED) ---
+[Bb]in/
+[Oo]bj/
+
+# --- Other Common C# temporary files (Recommended) ---
+.vs/
+*.user
+*.suo
+*.pdb
+appsettings.Development.json

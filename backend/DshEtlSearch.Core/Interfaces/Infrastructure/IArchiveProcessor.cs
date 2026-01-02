@@ -1,6 +1,12 @@
-namespace DshEtlSearch.Core;
+using DshEtlSearch.Core.Common;
+using DshEtlSearch.Core.Domain;
 
-public class IArchiveProcessor
+namespace DshEtlSearch.Core.Interfaces.Infrastructure;
+
+public interface IArchiveProcessor
 {
-    // TODO: Implement architecture logic here
+    /// <summary>
+    /// Extracts supported documents (XML, PDF, etc.) from a compressed stream.
+    /// </summary>
+    Task<Result<List<SupportingDocument>>> ExtractDocumentsAsync(Stream archiveStream, Guid datasetId);
 }

@@ -117,3 +117,5 @@ D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Api\bin\Debug\net10.0\runtimes
 D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Api\bin\Debug\net10.0\Swashbuckle.AspNetCore.Swagger.dll
 D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Api\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Api\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Api\bin\Debug\net10.0\DatasetStorage\c58cd818-dd10-4f60-b30b-2ea2d50f34a4\ro-crate-metadata.json
+D:\OA\dsh-etl-search-ai-2025\backend\DshEtlSearch.Api\bin\Debug\net10.0\DatasetStorage\e0c70093-7399-4437-a0b2-05364b62dc6f\ro-crate-metadata.json

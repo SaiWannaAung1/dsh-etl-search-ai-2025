@@ -6,7 +6,7 @@ namespace DshEtlSearch.Core.Common.Enums
         Xml,
         Json,
         Pdf,
-        Zip,
+        Csv,
         Txt
     }
 }

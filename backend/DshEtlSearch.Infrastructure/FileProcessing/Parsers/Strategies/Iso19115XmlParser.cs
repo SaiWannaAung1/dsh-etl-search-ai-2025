@@ -1,51 +1,49 @@
 using System.Xml.Linq;
 using DshEtlSearch.Core.Common;
-using DshEtlSearch.Core.Common.Enums;
-using DshEtlSearch.Core.Domain;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 
-namespace DshEtlSearch.Infrastructure.FileProcessing.Parsers.Strategies
+namespace DshEtlSearch.Infrastructure.FileProcessing.Parsers.Strategies;
+
+public class Iso19115XmlParser : IMetadataParser
 {
-    public class Iso19115XmlParser : IMetadataParser
+    private static readonly XNamespace gmd = "http://www.isotc211.org/2005/gmd";
+    private static readonly XNamespace gco = "http://www.isotc211.org/2005/gco";
+
+    public Result<ParsedMetadataDto> Parse(Stream content)
     {
-        public async Task<Result<MetadataRecord>> ParseAsync(Stream content)
+        try
         {
-            try
+            var doc = XDocument.Load(content);
+
+            var title = doc.Descendants(gmd + "title")
+                            .Descendants(gco + "CharacterString")
+                            .FirstOrDefault()?.Value 
+                        ?? "Untitled Dataset";
+
+            var abstractText = doc.Descendants(gmd + "abstract")
+                                   .Descendants(gco + "CharacterString")
+                                   .FirstOrDefault()?.Value 
+                               ?? "No description available.";
+
+            var url = doc.Descendants(gmd + "onLine")
+                .Descendants(gmd + "linkage")
+                .Descendants(gmd + "URL")
+                .FirstOrDefault()?.Value;
+
+            // FIX: Return the DTO instead of MetadataRecord entity
+            var dto = new ParsedMetadataDto
             {
-                // Load XML asynchronously
-                var xdoc = await XDocument.LoadAsync(content, LoadOptions.None, CancellationToken.None);
-                
-                // Define Namespaces typically found in ISO 19115
-                XNamespace gmd = "http://www.isotc211.org/2005/gmd";
-                XNamespace gco = "http://www.isotc211.org/2005/gco";
+                Title = title,
+                Abstract = abstractText,
+                ResourceUrl = url,
+                PublishedDate = DateTime.UtcNow // Ideally extract this from XML if possible
+            };
 
-                // Extract Title (Defensive coding with null coalescing)
-                var title = xdoc.Descendants(gmd + "title")
-                                .Descendants(gco + "CharacterString")
-                                .FirstOrDefault()?.Value 
-                            ?? "Untitled Dataset";
-
-                // Extract Abstract
-                var abstractText = xdoc.Descendants(gmd + "abstract")
-                                       .Descendants(gco + "CharacterString")
-                                       .FirstOrDefault()?.Value;
-
-                // Create Record
-                var record = new MetadataRecord
-                {
-                    Title = title,
-                    Abstract = abstractText,
-                    SourceFormat = MetadataFormat.Iso19115Xml,
-                    Authors = "Unknown", // XML parsing for authors is complex; simplified for MVP
-                    Keywords = "iso, geospatial"
-                };
-
-                return Result<MetadataRecord>.Success(record);
-            }
-            catch (Exception ex)
-            {
-                return Result<MetadataRecord>.Failure($"Failed to parse ISO XML: {ex.Message}");
-            }
+            return Result<ParsedMetadataDto>.Success(dto);
+        }
+        catch (Exception ex)
+        {
+            return Result<ParsedMetadataDto>.Failure($"Failed to parse ISO XML: {ex.Message}");
         }
     }
 }

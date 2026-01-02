@@ -1,45 +1,45 @@
 using System.Text.Json;
 using DshEtlSearch.Core.Common;
-using DshEtlSearch.Core.Common.Enums;
-using DshEtlSearch.Core.Domain;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 
-namespace DshEtlSearch.Infrastructure.FileProcessing.Parsers.Strategies
+namespace DshEtlSearch.Infrastructure.FileProcessing.Parsers.Strategies;
+
+public class JsonExpandedParser : IMetadataParser
 {
-    public class JsonExpandedParser : IMetadataParser
+    public Result<ParsedMetadataDto> Parse(Stream content)
     {
-        public async Task<Result<MetadataRecord>> ParseAsync(Stream content)
+        try
         {
-            try
+            var json = JsonSerializer.Deserialize<JsonElement>(content);
+
+            // Navigate JSON structure safely
+            var title = GetProperty(json, "title") ?? GetProperty(json, "name") ?? "Untitled";
+            var description = GetProperty(json, "description") ?? GetProperty(json, "abstract") ?? "";
+            var url = GetProperty(json, "url");
+
+            // FIX: Return the DTO
+            var dto = new ParsedMetadataDto
             {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var doc = await JsonSerializer.DeserializeAsync<JsonElement>(content, options);
+                Title = title,
+                Abstract = description,
+                ResourceUrl = url,
+                PublishedDate = DateTime.UtcNow
+            };
 
-                // FIX: Use pattern matching to safely extract non-null string
-                // Logic: If property "name" exists AND its value is a valid string 's', use 's'. Else "No Title".
-                string title = doc.TryGetProperty("name", out var nameProp) && nameProp.GetString() is string s 
-                    ? s 
-                    : "No Title";
-
-                // FIX: Explicitly define as nullable string? because abstract is optional
-                string? description = doc.TryGetProperty("description", out var descProp) 
-                    ? descProp.GetString() 
-                    : null;
-                
-                var record = new MetadataRecord
-                {
-                    Title = title,
-                    Abstract = description,
-                    SourceFormat = MetadataFormat.JsonExpanded,
-                    Authors = "System Generated"
-                };
-
-                return Result<MetadataRecord>.Success(record);
-            }
-            catch (Exception ex)
-            {
-                return Result<MetadataRecord>.Failure($"Failed to parse Expanded JSON: {ex.Message}");
-            }
+            return Result<ParsedMetadataDto>.Success(dto);
         }
+        catch (Exception ex)
+        {
+            return Result<ParsedMetadataDto>.Failure($"Failed to parse JSON: {ex.Message}");
+        }
+    }
+
+    private string? GetProperty(JsonElement element, string propName)
+    {
+        if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty(propName, out var prop))
+        {
+            return prop.ToString();
+        }
+        return null;
     }
 }

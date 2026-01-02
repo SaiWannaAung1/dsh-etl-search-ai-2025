@@ -1,97 +1,139 @@
 ﻿using DshEtlSearch.Core.Common;
 using DshEtlSearch.Core.Common.Enums;
 using DshEtlSearch.Core.Domain;
-using DshEtlSearch.Core.Interfaces.Application;
+using DshEtlSearch.Core.Features.Ingestion;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
-using DshEtlSearch.Infrastructure.FileProcessing.Parsers;
-using DshEtlSearch.Infrastructure.Services; // Ensure this points to where EtlOrchestrator is
-using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
-namespace DshEtlSearch.UnitTests.Core.Features
+namespace DshEtlSearch.Tests.Unit.Core.Features;
+
+public class EtlOrchestratorTests
 {
-    public class EtlOrchestratorTests
+    private readonly Mock<ICehCatalogueClient> _mockCehClient;
+    private readonly Mock<IArchiveProcessor> _mockArchive;
+    private readonly Mock<IMetadataRepository> _mockRepo;
+    private readonly Mock<IMetadataParserFactory> _mockFactory;
+    private readonly Mock<IMetadataParser> _mockParser;
+    private readonly EtlOrchestrator _etlService;
+
+    public EtlOrchestratorTests()
     {
-        private readonly Mock<IDownloader> _downloaderMock;
-        private readonly Mock<IExtractionService> _extractorMock;
-        private readonly Mock<IMetadataRepository> _repoMock;
-        private readonly MetadataParserFactory _factory; // Use real factory, it's stateless logic
-        private readonly EtlOrchestrator _orchestrator;
+        _mockCehClient = new Mock<ICehCatalogueClient>();
+        _mockArchive = new Mock<IArchiveProcessor>();
+        _mockRepo = new Mock<IMetadataRepository>();
+        _mockFactory = new Mock<IMetadataParserFactory>();
+        _mockParser = new Mock<IMetadataParser>();
 
-        public EtlOrchestratorTests()
+        // Setup the Factory to return our Mock Parser
+        _mockFactory.Setup(f => f.GetParser(It.IsAny<MetadataFormat>()))
+                    .Returns(_mockParser.Object);
+
+        _etlService = new EtlOrchestrator(
+            _mockCehClient.Object,
+            _mockArchive.Object,
+            _mockRepo.Object,
+            _mockFactory.Object);
+    }
+
+    [Fact]
+    public async Task IngestDatasetAsync_ShouldSaveDataset_WhenFlowIsSuccessful()
+    {
+        // Arrange
+        string fileIdentifier = "ceh-12345";
+        
+        // 1. Mock Repo: Dataset does NOT exist yet
+        _mockRepo.Setup(r => r.ExistsAsync(fileIdentifier)).ReturnsAsync(false);
+
+        // 2. Mock Metadata Download: Returns a valid stream
+        // We use a non-empty stream so StreamReader doesn't complain
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<xml>content</xml>"));
+        _mockCehClient.Setup(c => c.GetMetadataAsync(fileIdentifier, MetadataFormat.Iso19115Xml))
+            .ReturnsAsync(Result<Stream>.Success(stream));
+
+        // 3. Mock Parser: Returns the DTO (Not the Entity!)
+        var parsedDto = new ParsedMetadataDto
         {
-            _downloaderMock = new Mock<IDownloader>();
-            _extractorMock = new Mock<IExtractionService>();
-            _repoMock = new Mock<IMetadataRepository>();
-            _factory = new MetadataParserFactory();
+            Title = "Test Title",
+            Abstract = "Test Abstract",
+            ResourceUrl = "http://resource.url"
+        };
 
-            _orchestrator = new EtlOrchestrator(
-                _downloaderMock.Object,
-                _extractorMock.Object,
-                _factory,
-                _repoMock.Object,
-                new NullLogger<EtlOrchestrator>()
-            );
-        }
+        // FIX: Remove the 'Guid' parameter. The new Parser interface is Parse(Stream).
+        _mockParser.Setup(p => p.Parse(It.IsAny<Stream>()))
+            .Returns(Result<ParsedMetadataDto>.Success(parsedDto));
 
-        [Fact]
-        public async Task ImportDatasetAsync_ShouldCompleteEtlFlow_WhenAllStepsSucceed()
-        {
-            // Arrange
-            string url = "http://test.com/data.zip";
-            
-            // 1. Mock Download
-            var dummyZipStream = new MemoryStream();
-            _downloaderMock.Setup(d => d.DownloadStreamAsync(url))
-                .ReturnsAsync(Result<Stream>.Success(dummyZipStream));
+        // 4. Mock Zip Download: Returns a valid stream
+        _mockCehClient.Setup(c => c.DownloadDatasetZipAsync(fileIdentifier))
+            .ReturnsAsync(Result<Stream>.Success(new MemoryStream()));
 
-            // 2. Mock Extraction (Return a fake XML file path)
-            // We create a real temp file so the Orchestrator can 'File.OpenRead' it
-            var tempFile = Path.GetTempFileName() + ".xml";
-            File.WriteAllText(tempFile, "<root>Valid XML</root>"); // Minimal valid XML content
+        // 5. Mock Archive Extraction: Returns 1 supporting document
+        // Note: SupportingDocument constructor requires (datasetId, filename, type, size)
+        var docs = new List<SupportingDocument> 
+        { 
+            new SupportingDocument(Guid.NewGuid(), "readme.txt", FileType.Txt, 1024) 
+        };
+        _mockArchive.Setup(a => a.ExtractDocumentsAsync(It.IsAny<Stream>(), It.IsAny<Guid>()))
+            .ReturnsAsync(Result<List<SupportingDocument>>.Success(docs));
 
-            _extractorMock.Setup(e => e.ExtractZipAsync(It.IsAny<Stream>(), It.IsAny<string>()))
-                .ReturnsAsync(Result<List<string>>.Success(new List<string> { tempFile }));
+        // Act
+        var result = await _etlService.IngestDatasetAsync(fileIdentifier);
 
-            // 3. Mock Parser (Since the Factory creates real parsers, we are testing Integration of Factory+Parser here implicitly, 
-            //    or we could mock the IMetadataParser. However, EtlOrchestrator uses the Factory directly.
-            //    To make this purely a UNIT test, we'd rely on the real parser failing on dummy XML unless we provide valid ISO XML.
-            //    Let's provide valid ISO XML to make the Real Parser happy.)
-            
-            var validIsoXml = @"<?xml version='1.0'?><gmd:MD_Metadata xmlns:gmd='http://www.isotc211.org/2005/gmd' xmlns:gco='http://www.isotc211.org/2005/gco'><gmd:identificationInfo><gmd:title><gco:CharacterString>Success Title</gco:CharacterString></gmd:title></gmd:identificationInfo></gmd:MD_Metadata>";
-            File.WriteAllText(tempFile, validIsoXml);
+        // Assert
+        Assert.True(result.IsSuccess);
 
-            // Act
-            var result = await _orchestrator.ImportDatasetAsync(url);
+        // Verify Repository was called to save
+        // FIX: We verify that 'd.Title' is set directly on the Dataset, NOT on 'd.Metadata'
+        _mockRepo.Verify(r => r.AddAsync(It.Is<Dataset>(d => 
+            d.FileIdentifier == fileIdentifier && 
+            d.Title == "Test Title" &&       // Checked directly on Dataset
+            d.Abstract == "Test Abstract" && // Checked directly on Dataset
+            d.MetadataRecords != null &&            // Metadata backup record exists
+            d.SupportingDocuments.Count == 1
+        )), Times.Once);
+    }
 
-            // Cleanup
-            if (File.Exists(tempFile)) File.Delete(tempFile);
+    [Fact]
+    public async Task IngestDatasetAsync_ShouldFail_WhenMetadataDownloadFails()
+    {
+        // Arrange
+        string fileIdentifier = "ceh-fail";
+        _mockRepo.Setup(r => r.ExistsAsync(fileIdentifier)).ReturnsAsync(false);
 
-            // Assert
-            result.IsSuccess.Should().BeTrue();
-            result.Value.Should().NotBeEmpty();
+        // Mock Failure
+        _mockCehClient.Setup(c => c.GetMetadataAsync(fileIdentifier, MetadataFormat.Iso19115Xml))
+            .ReturnsAsync(Result<Stream>.Failure("404 Not Found"));
 
-            // Verify Repo was called to save
-            _repoMock.Verify(r => r.AddAsync(It.Is<Dataset>(d => d.Metadata!.Title == "Success Title")), Times.Once);
-            _repoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
-        }
+        // Act
+        var result = await _etlService.IngestDatasetAsync(fileIdentifier);
 
-        [Fact]
-        public async Task ImportDatasetAsync_ShouldFail_WhenDownloadFails()
-        {
-            // Arrange
-            _downloaderMock.Setup(d => d.DownloadStreamAsync(It.IsAny<string>()))
-                .ReturnsAsync(Result<Stream>.Failure("404 Not Found"));
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Metadata download failed", result.Error);
 
-            // Act
-            var result = await _orchestrator.ImportDatasetAsync("http://bad-url.com");
+        // Verify NO save occurred
+        _mockRepo.Verify(r => r.AddAsync(It.IsAny<Dataset>()), Times.Never);
+        // Verify we didn't try to download zip
+        _mockCehClient.Verify(c => c.DownloadDatasetZipAsync(It.IsAny<string>()), Times.Never);
+    }
 
-            // Assert
-            result.IsSuccess.Should().BeFalse();
-            result.Error.Should().Contain("404 Not Found");
-            _repoMock.Verify(r => r.AddAsync(It.IsAny<Dataset>()), Times.Never);
-        }
+    [Fact]
+    public async Task IngestDatasetAsync_ShouldSkip_WhenDatasetAlreadyExists()
+    {
+        // Arrange
+        string fileIdentifier = "ceh-exists";
+        
+        // Mock Repo: Dataset EXISTS
+        _mockRepo.Setup(r => r.ExistsAsync(fileIdentifier)).ReturnsAsync(true);
+
+        // Act
+        var result = await _etlService.IngestDatasetAsync(fileIdentifier);
+
+        // Assert
+        Assert.True(result.IsSuccess); // Success because skipping is a valid outcome
+
+        // Verify we stopped early
+        _mockCehClient.Verify(c => c.GetMetadataAsync(It.IsAny<string>(), It.IsAny<MetadataFormat>()), Times.Never);
+        _mockRepo.Verify(r => r.AddAsync(It.IsAny<Dataset>()), Times.Never);
     }
 }

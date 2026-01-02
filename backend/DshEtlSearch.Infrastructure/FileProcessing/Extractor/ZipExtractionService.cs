@@ -1,65 +1,75 @@
 using System.IO.Compression;
 using DshEtlSearch.Core.Common;
+using DshEtlSearch.Core.Common.Enums;
+using DshEtlSearch.Core.Domain;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using Microsoft.Extensions.Logging;
 
-namespace DshEtlSearch.Infrastructure.FileProcessing.Extractor
+namespace DshEtlSearch.Infrastructure.FileProcessing.Extractor;
+
+public class ZipExtractionService : IArchiveProcessor
 {
-    public class ZipExtractionService : IExtractionService
+    private readonly ILogger<ZipExtractionService> _logger;
+
+    public ZipExtractionService(ILogger<ZipExtractionService> logger)
     {
-        private readonly ILogger<ZipExtractionService> _logger;
+        _logger = logger;
+    }
 
-        public ZipExtractionService(ILogger<ZipExtractionService> logger)
+    public async Task<Result<List<SupportingDocument>>> ExtractDocumentsAsync(Stream archiveStream, Guid datasetId)
+    {
+        var documents = new List<SupportingDocument>();
+
+        try
         {
-            _logger = logger;
-        }
+            // Copy to MemoryStream to ensure it is seekable
+            using var memoryStream = new MemoryStream();
+            await archiveStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
 
-        public async Task<Result<List<string>>> ExtractZipAsync(Stream zipStream, string outputFolder)
-        {
-            var extractedFiles = new List<string>();
+            using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Read);
 
-            try
+            foreach (var entry in archive.Entries)
             {
-                if (!Directory.Exists(outputFolder))
-                    Directory.CreateDirectory(outputFolder);
+                // Skip empty entries or directories
+                if (string.IsNullOrEmpty(entry.Name) || entry.Length == 0) continue;
 
-                // 'using' ensures the archive is properly closed after operation
-                using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
-                
-                foreach (var entry in archive.Entries)
+                string content = string.Empty;
+                try 
                 {
-                    // Skip directories
-                    if (string.IsNullOrEmpty(entry.Name)) continue;
-
-                    // 1. Construct Full Path
-                    string destinationPath = Path.Combine(outputFolder, entry.FullName);
-                    string fullOutputFolder = Path.GetFullPath(outputFolder);
-
-                    // 2. Security Check: Zip Slip Vulnerability
-                    // Ensure the final path is actually INSIDE the output folder
-                    if (!Path.GetFullPath(destinationPath).StartsWith(fullOutputFolder, StringComparison.Ordinal))
-                    {
-                        _logger.LogWarning("Zip Slip attempt detected: {EntryName}", entry.FullName);
-                        continue; 
-                    }
-
-                    // 3. Ensure directory exists for nested files
-                    var directoryName = Path.GetDirectoryName(destinationPath);
-                    if (!string.IsNullOrEmpty(directoryName))
-                        Directory.CreateDirectory(directoryName);
-
-                    // 4. Extract
-                    entry.ExtractToFile(destinationPath, overwrite: true);
-                    extractedFiles.Add(destinationPath);
+                    // Try to read content as text
+                    content = await ReadEntryContentAsync(entry);
+                }
+                catch
+                {
+                    // If it's a binary file (image, exe, etc.), just save empty string
+                    // We don't want to crash the whole process
+                    content = string.Empty; 
                 }
 
-                return Result<List<string>>.Success(extractedFiles);
+                // SIMPLIFIED: We just use 'FileType.Unknown' for everything.
+                // We don't check extensions anymore.
+                var doc = new SupportingDocument(datasetId, entry.Name, FileType.Unknown, entry.Length)
+                {
+                    ExtractedText = content
+                };
+
+                documents.Add(doc);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to extract zip archive.");
-                return Result<List<string>>.Failure($"Extraction failed: {ex.Message}");
-            }
+
+            return Result<List<SupportingDocument>>.Success(documents);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to extract zip archive");
+            return Result<List<SupportingDocument>>.Failure($"Failed to extract archive: {ex.Message}");
+        }
+    }
+
+    private async Task<string> ReadEntryContentAsync(ZipArchiveEntry entry)
+    {
+        using var entryStream = entry.Open();
+        using var reader = new StreamReader(entryStream);
+        return await reader.ReadToEndAsync();
     }
 }

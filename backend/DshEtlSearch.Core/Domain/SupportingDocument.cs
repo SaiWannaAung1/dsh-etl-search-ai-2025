@@ -12,6 +12,9 @@ namespace DshEtlSearch.Core.Domain
         public long SizeBytes { get; private set; }
         public string? StoragePath { get; set; } // Path in blob storage/disk
 
+        // FIX: Added this property so ZipExtractionService can store the content
+        public string ExtractedText { get; set; } = string.Empty;
+
         public SupportingDocument(Guid datasetId, string fileName, FileType type, long sizeBytes)
         {
             Id = Guid.NewGuid();
