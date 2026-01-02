@@ -1,6 +1,10 @@
 using System.IO.Compression;
+using System.Text;
+using DocumentFormat.OpenXml.Packaging;
+using iText.Kernel.Pdf; // Add this for PDF
+using iText.Kernel.Pdf.Canvas.Parser; // Add this for PDF
+using iText.Kernel.Pdf.Canvas.Parser.Listener; // Add this for PDF
 using DshEtlSearch.Core.Common;
-using DshEtlSearch.Core.Common.Enums;
 using DshEtlSearch.Core.Domain;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -22,7 +26,6 @@ public class ZipExtractionService : IArchiveProcessor
 
         try
         {
-            // Copy to MemoryStream to ensure it is seekable
             using var memoryStream = new MemoryStream();
             await archiveStream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
@@ -31,25 +34,33 @@ public class ZipExtractionService : IArchiveProcessor
 
             foreach (var entry in archive.Entries)
             {
-                // Skip empty entries or directories
                 if (string.IsNullOrEmpty(entry.Name) || entry.Length == 0) continue;
 
                 string content = string.Empty;
+                string extension = Path.GetExtension(entry.Name).ToLower();
+
                 try 
                 {
-                    // Try to read content as text
-                    content = await ReadEntryContentAsync(entry);
+                    if (extension == ".docx")
+                    {
+                        content = ExtractTextFromDocx(entry);
+                    }
+                    else if (extension == ".pdf")
+                    {
+                        content = ExtractTextFromPdf(entry);
+                    }
+                    else if (IsTextFile(extension))
+                    {
+                        content = await ReadEntryContentAsync(entry);
+                    }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // If it's a binary file (image, exe, etc.), just save empty string
-                    // We don't want to crash the whole process
+                    _logger.LogWarning($"Could not read {entry.Name}: {ex.Message}");
                     content = string.Empty; 
                 }
 
-                // SIMPLIFIED: We just use 'FileType.Unknown' for everything.
-                // We don't check extensions anymore.
-                var doc = new SupportingDocument(datasetId, entry.Name, FileType.Unknown, entry.Length)
+                var doc = new SupportingDocument(datasetId, entry.Name)
                 {
                     ExtractedText = content
                 };
@@ -62,14 +73,65 @@ public class ZipExtractionService : IArchiveProcessor
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to extract zip archive");
-            return Result<List<SupportingDocument>>.Failure($"Failed to extract archive: {ex.Message}");
+            return Result<List<SupportingDocument>>.Failure(ex.Message);
+        }
+    }
+
+    private string ExtractTextFromDocx(ZipArchiveEntry entry)
+    {
+        try
+        {
+            using var entryStream = entry.Open();
+            using var ms = new MemoryStream();
+            entryStream.CopyTo(ms);
+            ms.Position = 0;
+
+            using var wordDoc = WordprocessingDocument.Open(ms, false);
+            var body = wordDoc.MainDocumentPart?.Document.Body;
+            return body?.InnerText ?? string.Empty;
+        }
+        catch { return string.Empty; }
+    }
+
+    private string ExtractTextFromPdf(ZipArchiveEntry entry)
+    {
+        try
+        {
+            using var entryStream = entry.Open();
+            using var ms = new MemoryStream();
+            entryStream.CopyTo(ms);
+            ms.Position = 0;
+
+            StringBuilder text = new StringBuilder();
+            using (var pdfReader = new PdfReader(ms))
+            using (var pdfDoc = new PdfDocument(pdfReader))
+            {
+                for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
+                {
+                    var strategy = new SimpleTextExtractionStrategy();
+                    string pageText = PdfTextExtractor.GetTextFromPage(pdfDoc.GetPage(i), strategy);
+                    text.Append(pageText);
+                }
+            }
+            return text.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"PDF extraction failed for {entry.Name}: {ex.Message}");
+            return string.Empty;
         }
     }
 
     private async Task<string> ReadEntryContentAsync(ZipArchiveEntry entry)
     {
         using var entryStream = entry.Open();
-        using var reader = new StreamReader(entryStream);
+        using var reader = new StreamReader(entryStream, Encoding.UTF8);
         return await reader.ReadToEndAsync();
+    }
+
+    private bool IsTextFile(string ext)
+    {
+        var textExtensions = new[] { ".json", ".xml", ".html", ".htm", ".txt", ".csv", ".ttl" };
+        return textExtensions.Contains(ext);
     }
 }

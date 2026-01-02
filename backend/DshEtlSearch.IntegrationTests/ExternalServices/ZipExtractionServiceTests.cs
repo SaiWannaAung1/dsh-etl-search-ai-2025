@@ -44,7 +44,6 @@ namespace DshEtlSearch.IntegrationTests.ExternalServices
             var doc = result.Value.First();
             doc.FileName.Should().Be(fileName);
             doc.DatasetId.Should().Be(datasetId);
-            doc.Type.Should().Be(FileType.Unknown); 
             doc.ExtractedText.Should().Be(expectedContent);
         }
 
@@ -72,7 +71,6 @@ namespace DshEtlSearch.IntegrationTests.ExternalServices
             
             var doc = result.Value!.First();
             doc.FileName.Should().Be("image.png");
-            doc.Type.Should().Be(FileType.Unknown);
 
             // FIX: Since we download everything as text, we expect the content to be present.
             // We wrote byte 65 ('A'), so StreamReader reads it as "A".

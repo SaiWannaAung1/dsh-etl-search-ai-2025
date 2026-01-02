@@ -16,4 +16,24 @@
     <ProjectReference Include="..\DshEtlSearch.Infrastructure\DshEtlSearch.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="DatasetStorage\77b9cafe-89f7-4655-953e-8a36da2fc7f7\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\c58cd818-dd10-4f60-b30b-2ea2d50f34a4\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\cc71c88e-4d92-40d5-abba-c411d11a5d31\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\e0c70093-7399-4437-a0b2-05364b62dc6f\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\0f449c81-6a93-4300-9936-38553579e5f1\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\2ee6c6a0-5230-4749-88a3-0e203feced08\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\4a758324-b59d-411d-b929-d23fdd9325e7\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\7cfdb523-85fc-4a10-9f3d-1bc4cd424e06\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\5c85b703-dade-4b17-8341-5140c436fc5b\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\086630e1-4df8-43cd-8e72-1b9d456f2c1e\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\6ff4bccf-6f3e-485f-934a-078382db3a86\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\45c15695-4cc4-4543-bbf8-ca797b6c6173\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\aca2d73d-8390-49a7-8cb8-e59b8d90657e\ro-crate-metadata.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DatasetStorage\" />
+  </ItemGroup>
+
 </Project>

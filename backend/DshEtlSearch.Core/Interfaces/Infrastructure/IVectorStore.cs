@@ -1,6 +1,11 @@
-namespace DshEtlSearch.Core;
+using DshEtlSearch.Core.Domain;
 
-public class IVectorStore
+namespace DshEtlSearch.Core.Interfaces.Infrastructure
 {
-    // TODO: Implement architecture logic here
+    public interface IVectorStore
+    {
+        Task CreateCollectionAsync(string collectionName, int vectorSize, CancellationToken token = default);
+        Task UpsertVectorsAsync(string collectionName, IEnumerable<EmbeddingVector> vectors, CancellationToken token = default);
+        Task<List<EmbeddingVector>> SearchAsync(string collectionName, float[] queryVector, int limit = 5, CancellationToken token = default);
+    }
 }

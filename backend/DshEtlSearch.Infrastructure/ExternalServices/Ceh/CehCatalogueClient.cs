@@ -27,7 +27,7 @@ public class CehCatalogueClient : ICehCatalogueClient
     public async Task<Result<Stream>> DownloadDatasetZipAsync(string fileIdentifier)
     {
         // Pattern: https://data-package.ceh.ac.uk/data/{id}.zip
-        string url = $"{DataPackageBaseUrl}/data/{fileIdentifier}.zip";
+        string url = $"{DataPackageBaseUrl}/sd/{fileIdentifier}.zip";
         
         // FIX: Call DownloadStreamAsync directly. 
         // Previously, you were passing the URL into DownloadSupportingDocsAsync, 

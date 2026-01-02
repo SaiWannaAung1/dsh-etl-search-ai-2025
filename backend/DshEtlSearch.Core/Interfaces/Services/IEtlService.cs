@@ -9,7 +9,7 @@ public interface IEtlService
     /// Processes a single dataset: Metadata Download -> Parsing -> Zip Extraction -> DB Save.
     /// </summary>
     /// <param name="fileIdentifier">The CEH File Identifier (GUID)</param>
-    Task<Result> IngestDatasetAsync(string fileIdentifier);
+    Task<Result> IngestDatasetAsync(string fileIdentifier, CancellationToken token = default);
 
     /// <summary>
     /// Batch process: Reads 'metadata-file-identifiers.txt' and processes each ID sequentially.
