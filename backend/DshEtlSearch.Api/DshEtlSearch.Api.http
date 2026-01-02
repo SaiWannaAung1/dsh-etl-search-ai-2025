@@ -1,6 +1,0 @@
-@DshEtlSearch.Api_HostAddress = http://localhost:5007
-
-GET {{DshEtlSearch.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
