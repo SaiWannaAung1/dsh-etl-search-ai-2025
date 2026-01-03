@@ -30,6 +30,7 @@
     <_ContentIncludedByDefault Remove="DatasetStorage\6ff4bccf-6f3e-485f-934a-078382db3a86\ro-crate-metadata.json" />
     <_ContentIncludedByDefault Remove="DatasetStorage\45c15695-4cc4-4543-bbf8-ca797b6c6173\ro-crate-metadata.json" />
     <_ContentIncludedByDefault Remove="DatasetStorage\aca2d73d-8390-49a7-8cb8-e59b8d90657e\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\10d561c1-e328-4b56-bf80-30d58e3fcae7\ro-crate-metadata.json" />
   </ItemGroup>
 
   <ItemGroup>

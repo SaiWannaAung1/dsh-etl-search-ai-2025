@@ -1,3 +1,4 @@
+using DshEtlSearch.Core.Common;
 using DshEtlSearch.Core.Domain;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -69,9 +70,8 @@ namespace DshEtlSearch.Infrastructure.Data.VectorStore
             await _client.UpsertAsync(collectionName, points, cancellationToken: token);
         }
 
-        public async Task<List<EmbeddingVector>> SearchAsync(string collectionName, float[] queryVector, int limit = 5, CancellationToken token = default)
+        public async Task<List<VectorSearchResult>> SearchAsync(string collectionName, float[] queryVector, int limit = 5, CancellationToken token = default)
         {
-            // FIX: Use named parameters (limit:) because the library signature has Filter before Limit
             var results = await _client.SearchAsync(
                 collectionName: collectionName,
                 vector: queryVector,
@@ -79,23 +79,12 @@ namespace DshEtlSearch.Infrastructure.Data.VectorStore
                 cancellationToken: token
             );
 
-            // Map back to our Domain Entity
-            return results.Select(p => new EmbeddingVector
-            {
-                Id = Guid.Parse(p.Id.Uuid),
-                
-                // Read safely from the payload map
-                SourceId = p.Payload.ContainsKey("source_id") 
-                    ? Guid.Parse(p.Payload["source_id"].StringValue) 
-                    : Guid.Empty,
-
-                TextContent = p.Payload.ContainsKey("text_content") 
-                    ? p.Payload["text_content"].StringValue 
-                    : string.Empty,
-
-                // We generally don't return the vector array in search results to save bandwidth
-                Vector = Array.Empty<float>() 
-            }).ToList();
+            return results.Select(p => new VectorSearchResult(
+                sourceId: p.Payload.ContainsKey("source_id") ? Guid.Parse(p.Payload["source_id"].StringValue) : Guid.Empty,
+                text: p.Payload.ContainsKey("text_content") ? p.Payload["text_content"].StringValue : string.Empty,
+                score: p.Score // <--- Now we capture the actual score!
+            )).ToList();
         }
+        
     }
 }
