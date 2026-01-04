@@ -2,7 +2,9 @@ using DshEtlSearch.Api.Configuration;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using DshEtlSearch.Core.Interfaces.Services;
 using DshEtlSearch.Infrastructure.Data.SQLite;
-using DshEtlSearch.Infrastructure.Data.VectorStore; // Correct namespace for QdrantVectorStore
+using DshEtlSearch.Infrastructure.Data.VectorStore;
+using DshEtlSearch.Infrastructure.ExternalServices;
+using DshEtlSearch.Infrastructure.ExternalServices.Ai;
 using DshEtlSearch.Infrastructure.ExternalServices.Ceh; // Correct namespace for OnnxEmbeddingService
 using Microsoft.EntityFrameworkCore;
 using Qdrant.Client;
@@ -33,6 +35,8 @@ builder.Services.AddSingleton<QdrantClient>(sp =>
     return new QdrantClient(host, port, https, apiKey: string.IsNullOrWhiteSpace(apiKey) ? null : apiKey);
 });
 
+
+builder.Services.AddScoped<ILlmService, GeminiLlmService>();
 // C. Register Vector Store Wrapper
 builder.Services.AddScoped<IVectorStore, QdrantVectorStore>();
 

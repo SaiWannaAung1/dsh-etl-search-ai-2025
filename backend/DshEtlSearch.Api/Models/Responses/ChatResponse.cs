@@ -1,6 +1,8 @@
-namespace DshEtlSearch.Api;
+namespace DshEtlSearch.Api.Models.Responses;
 
 public class ChatResponse
 {
-    // TODO: Implement architecture logic here
+    public string Answer { get; set; } = string.Empty;
+    // It's good practice to show which DOCX/PDFs were used to answer
+    public List<string> Sources { get; set; } = new(); 
 }
