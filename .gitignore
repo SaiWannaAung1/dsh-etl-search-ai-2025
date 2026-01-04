@@ -20,9 +20,6 @@
 bin/
 obj/
 
-[Bb]in/
-[Oo]bj/
-
 # --- Other Common C# temporary files ---
 .vs/
 *.user
