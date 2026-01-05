@@ -141,6 +141,12 @@ public class EtlOrchestrator : IEtlService
             // C. DOWNLOAD, EXTRACT & VECTORIZE
             // =========================================================
             var zipResult = await _cehClient.DownloadDatasetZipAsync(fileIdentifier);
+            if (!zipResult.IsSuccess)
+            {
+                zipResult = await _cehClient.DownloadSupportingDocsAsync(fileIdentifier);
+
+            }
+
             if (zipResult.IsSuccess)
             {
                 using var zipStream = zipResult.Value!;
@@ -156,8 +162,10 @@ public class EtlOrchestrator : IEtlService
                   
                     foreach (var doc in extractResult.Value!)
                     {
+                        var validDocs = new[] { ".pdf", ".docx", ".json", ".html", ".txt", ".xml", ".ttl" };
+                        string extension = Path.GetExtension(doc.FileName).ToLower();
                         
-                        if (!string.IsNullOrEmpty(doc.ExtractedText))
+                        if (!string.IsNullOrEmpty(doc.ExtractedText) && validDocs.Contains(extension) )
                         {
                             // 1. Save File to Disk
                             var safeName = Path.GetFileName(doc.FileName); 
@@ -208,6 +216,7 @@ public class EtlOrchestrator : IEtlService
                                 _logger.LogWarning(ex, $"Error generating embedding for {doc.FileName}");
                             }
                         }
+                        
                         dataset.AddDocument(doc);
                     }
 

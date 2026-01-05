@@ -34,10 +34,11 @@ public class ZipExtractionService : IArchiveProcessor
 
             foreach (var entry in archive.Entries)
             {
+                // FIX: Check FullName for directory entries (entries ending in / are folders)
                 if (string.IsNullOrEmpty(entry.Name) || entry.Length == 0) continue;
 
                 string content = string.Empty;
-                string extension = Path.GetExtension(entry.Name).ToLower();
+                string extension = Path.GetExtension(entry.FullName).ToLower(); // Use FullName
 
                 try 
                 {
@@ -56,11 +57,12 @@ public class ZipExtractionService : IArchiveProcessor
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"Could not read {entry.Name}: {ex.Message}");
+                    _logger.LogWarning($"Could not read {entry.FullName}: {ex.Message}");
                     content = string.Empty; 
                 }
 
-                var doc = new SupportingDocument(datasetId, entry.Name)
+                // FIX: Pass entry.FullName here so it includes "supporting-documents/"
+                var doc = new SupportingDocument(datasetId, entry.FullName)
                 {
                     ExtractedText = content
                 };
@@ -76,6 +78,7 @@ public class ZipExtractionService : IArchiveProcessor
             return Result<List<SupportingDocument>>.Failure(ex.Message);
         }
     }
+    
 
     private string ExtractTextFromDocx(ZipArchiveEntry entry)
     {

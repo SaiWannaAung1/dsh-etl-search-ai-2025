@@ -27,7 +27,7 @@ public class CehCatalogueClient : ICehCatalogueClient
     public async Task<Result<Stream>> DownloadDatasetZipAsync(string fileIdentifier)
     {
         // Pattern: https://data-package.ceh.ac.uk/data/{id}.zip
-        string url = $"{DataPackageBaseUrl}/sd/{fileIdentifier}.zip";
+        string url = $"{DataPackageBaseUrl}/data/{fileIdentifier}.zip";
         
         // FIX: Call DownloadStreamAsync directly. 
         // Previously, you were passing the URL into DownloadSupportingDocsAsync, 
@@ -38,9 +38,15 @@ public class CehCatalogueClient : ICehCatalogueClient
     // Kept this as a public method if you need it later, but ensured it's not called by mistake above
     public async Task<Result<Stream>> DownloadSupportingDocsAsync(string fileIdentifier)
     {
-        string url = $"{CatalogueBaseUrl}/documents/{fileIdentifier}/supporting-documents"; 
+        string url = $"{DataPackageBaseUrl}/sd/{fileIdentifier}.zip";
         return await DownloadStreamAsync(url);
-    }
+    }  
+    
+    // public async Task<Result<Stream>> DownloadDatasetAsync(string fileIdentifier)
+    // {
+    //     string url = $"{CatalogueBaseUrl}/datastore/eidchub/{fileIdentifier}"; 
+    //     return await DownloadStreamAsync(url);
+    // }
 
     private string BuildMetadataUrl(string id, MetadataFormat format)
     {
