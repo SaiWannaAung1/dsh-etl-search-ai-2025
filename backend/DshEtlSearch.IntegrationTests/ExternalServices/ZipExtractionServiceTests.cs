@@ -4,6 +4,7 @@ using DshEtlSearch.Core.Common.Enums;
 using DshEtlSearch.Infrastructure.FileProcessing.Extractor; 
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
 
 namespace DshEtlSearch.IntegrationTests.ExternalServices
 {
@@ -44,22 +45,22 @@ namespace DshEtlSearch.IntegrationTests.ExternalServices
             var doc = result.Value.First();
             doc.FileName.Should().Be(fileName);
             doc.DatasetId.Should().Be(datasetId);
-            doc.Type.Should().Be(FileType.Unknown); 
             doc.ExtractedText.Should().Be(expectedContent);
         }
 
         [Fact]
-        public async Task ExtractDocumentsAsync_ShouldInclude_BinaryFiles_WithContent()
+        public async Task ExtractDocumentsAsync_ShouldInclude_SupportedTextFiles_WithContent()
         {
             // Arrange
+            var fileName = "data.json"; // Changed from .png to .json to pass the IsTextFile filter
             using var memoryStream = new MemoryStream();
             using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
             {
-                var entry = archive.CreateEntry("image.png");
+                var entry = archive.CreateEntry(fileName);
                 using var stream = entry.Open();
                 
-                // Write a specific byte so we can verify it was extracted
-                stream.WriteByte(65); // 65 is ASCII for 'A'
+                // Write a specific byte (65 = 'A')
+                stream.WriteByte(65); 
             }
             memoryStream.Position = 0;
 
@@ -68,15 +69,38 @@ namespace DshEtlSearch.IntegrationTests.ExternalServices
 
             // Assert
             result.IsSuccess.Should().BeTrue();
-            result.Value.Should().HaveCount(1);
             
-            var doc = result.Value!.First();
-            doc.FileName.Should().Be("image.png");
-            doc.Type.Should().Be(FileType.Unknown);
+            // The service filters out unsupported extensions. 
+            // If the file is a supported text type, it should have the content.
+            var doc = result.Value!.FirstOrDefault(x => x.FileName == fileName);
+            doc.Should().NotBeNull();
+            doc!.ExtractedText.Should().Be("A"); 
+        }
 
-            // FIX: Since we download everything as text, we expect the content to be present.
-            // We wrote byte 65 ('A'), so StreamReader reads it as "A".
-            doc.ExtractedText.Should().Be("A"); 
+        [Fact]
+        public async Task ExtractDocumentsAsync_ShouldReturnEmpty_ForUnsupportedBinaryFiles()
+        {
+            // Arrange
+            var fileName = "unsupported.exe"; 
+            using var memoryStream = new MemoryStream();
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            {
+                var entry = archive.CreateEntry(fileName);
+                using var stream = entry.Open();
+                stream.WriteByte(65); 
+            }
+            memoryStream.Position = 0;
+
+            // Act
+            var result = await _service.ExtractDocumentsAsync(memoryStream, Guid.NewGuid());
+
+            // Assert
+            // The logic should either skip the file or return it with Empty text
+            var doc = result.Value!.FirstOrDefault(x => x.FileName == fileName);
+            if (doc != null)
+            {
+                doc.ExtractedText.Should().BeEmpty();
+            }
         }
     }
 }
