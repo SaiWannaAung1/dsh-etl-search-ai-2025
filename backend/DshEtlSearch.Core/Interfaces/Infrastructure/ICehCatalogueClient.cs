@@ -20,5 +20,6 @@ public interface ICehCatalogueClient
 
     // Optional: Added this to match your implementation, in case other services need it
     Task<Result<Stream>> DownloadSupportingDocsAsync(string fileIdentifier);
+    
 
 }

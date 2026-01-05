@@ -2,6 +2,7 @@ using DshEtlSearch.Core.Features.Ingestion;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using DshEtlSearch.Core.Interfaces.Services;
 using DshEtlSearch.Infrastructure.Data.SQLite;
+using DshEtlSearch.Infrastructure.ExternalServices;
 using DshEtlSearch.Infrastructure.ExternalServices.Ceh;
 using DshEtlSearch.Infrastructure.FileProcessing.Extractor; // Or .Archives, depending on where your ZipExtractionService is
 using DshEtlSearch.Infrastructure.FileProcessing.Parsers;
@@ -37,6 +38,8 @@ namespace DshEtlSearch.Api.Configuration
             // --- 6. Orchestrator ---
             // FIX: Register 'IEtlService' mapping to 'EtlOrchestrator'
             services.AddScoped<IEtlService, EtlOrchestrator>();
+            
+            
             
             return services;
         }

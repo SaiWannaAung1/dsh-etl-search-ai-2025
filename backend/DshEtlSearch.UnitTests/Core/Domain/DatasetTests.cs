@@ -41,7 +41,7 @@ namespace DshEtlSearch.Tests.Unit.Core.Domain
 
             // FIX: Create the document object manually first
             // (Because you removed the helper method that took strings)
-            var doc = new SupportingDocument(dataset.Id, fileName, FileType.Pdf, size);
+            var doc = new SupportingDocument(dataset.Id, fileName);
 
             // Act
             dataset.AddDocument(doc);
@@ -51,8 +51,6 @@ namespace DshEtlSearch.Tests.Unit.Core.Domain
             
             var addedDoc = dataset.SupportingDocuments[0];
             Assert.Equal(fileName, addedDoc.FileName);
-            Assert.Equal(FileType.Pdf, addedDoc.Type);
-            Assert.Equal(size, addedDoc.SizeBytes);
             Assert.Equal(dataset.Id, addedDoc.DatasetId); 
             Assert.NotNull(dataset.LastUpdated); // Check if LastUpdated was set
         }

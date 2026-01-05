@@ -1,24 +1,29 @@
+using DshEtlSearch.Core.Common.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace DshEtlSearch.Core.Domain
 {
+    // This is NOT mapped to SQLite. It lives in Qdrant.
+    [NotMapped]
     public class EmbeddingVector
     {
-        public Guid Id { get; set; }
-        public Guid DatasetId { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
         
-        // The actual vector (e.g., 1536 dims for OpenAI)
-        // Stored as JSON string or float array depending on DB choice
-        public float[] VectorData { get; set; } 
-        public int Dimensions { get; set; }
+        public Guid SourceId { get; set; } // Link to Dataset or SupportingDocument
+        public VectorSourceType SourceType { get; set; } 
         
-        public string ChunkText { get; set; } // The actual text segment this vector represents
+        public string TextContent { get; set; } = string.Empty;
+        public float[] Vector { get; set; } = Array.Empty<float>();
 
-        public EmbeddingVector(Guid datasetId, float[] vectorData, string chunkText)
+        public EmbeddingVector() { }
+
+        public EmbeddingVector(Guid sourceId, VectorSourceType type, string text, float[] vector)
         {
             Id = Guid.NewGuid();
-            DatasetId = datasetId;
-            VectorData = vectorData;
-            Dimensions = vectorData.Length;
-            ChunkText = chunkText;
+            SourceId = sourceId;
+            SourceType = type;
+            TextContent = text;
+            Vector = vector;
         }
     }
 }
