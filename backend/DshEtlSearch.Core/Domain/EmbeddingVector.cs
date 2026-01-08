@@ -15,15 +15,34 @@ namespace DshEtlSearch.Core.Domain
         public string TextContent { get; set; } = string.Empty;
         public float[] Vector { get; set; } = Array.Empty<float>();
 
+        // --- Metadata for Search Enrichment ---
+        public string Title { get; set; } = string.Empty;
+        public string? Abstract { get; set; }
+        public string? Authors { get; set; }
+        public string? Keywords { get; set; }
+
         public EmbeddingVector() { }
 
-        public EmbeddingVector(Guid sourceId, VectorSourceType type, string text, float[] vector)
+        // Updated constructor to accept all parameters from your call
+        public EmbeddingVector(
+            Guid sourceId, 
+            VectorSourceType type, 
+            string text, 
+            float[] vector,
+            string title,
+            string? @abstract,
+            string? authors,
+            string? keywords)
         {
             Id = Guid.NewGuid();
             SourceId = sourceId;
             SourceType = type;
             TextContent = text;
             Vector = vector;
+            Title = title;
+            Abstract = @abstract;
+            Authors = authors;
+            Keywords = keywords;
         }
     }
 }
