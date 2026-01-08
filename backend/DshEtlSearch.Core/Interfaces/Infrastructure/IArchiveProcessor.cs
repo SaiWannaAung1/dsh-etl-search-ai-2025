@@ -8,5 +8,5 @@ public interface IArchiveProcessor
     /// <summary>
     /// Extracts supported documents (XML, PDF, etc.) from a compressed stream.
     /// </summary>
-    Task<Result<List<SupportingDocument>>> ExtractDocumentsAsync(Stream archiveStream, Guid datasetId);
+    Task<Result<List<DataFile>>> ExtractDocumentsAsync(Stream archiveStream, Guid datasetId);
 }

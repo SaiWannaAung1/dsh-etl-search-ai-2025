@@ -5,6 +5,8 @@ using DshEtlSearch.Core.Interfaces.Infrastructure;
 using DshEtlSearch.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace DshEtlSearch.Core.Features.Ingestion;
 
@@ -14,7 +16,6 @@ public class EtlOrchestrator : IEtlService
     private readonly IArchiveProcessor _archiveProcessor;
     private readonly IMetadataRepository _repository;
     private readonly IMetadataParserFactory _parserFactory;
-
     private readonly IEmbeddingService _embeddingService;
     private readonly IVectorStore _vectorStore;
     private readonly ILogger<EtlOrchestrator> _logger;
@@ -42,46 +43,31 @@ public class EtlOrchestrator : IEtlService
 
     public async Task RunBatchIngestionAsync(CancellationToken token = default)
     {
-        // 1. Initialize Vector Database (Create collection if missing)
         try 
         {
-            _logger.LogInformation($"Checking/Creating Qdrant Collection: {VectorCollectionName}...");
             await _vectorStore.CreateCollectionAsync(VectorCollectionName, _embeddingService.VectorSize, token);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to initialize vector collection. Search may not work.");
-        }
+        catch (Exception ex) { _logger.LogError(ex, "Vector store initialization failed."); }
 
         var identifierFile = "metadata-file-identifiers.txt";
-        List<string> ids = File.Exists(identifierFile) 
+        var ids = File.Exists(identifierFile) 
             ? (await File.ReadAllLinesAsync(identifierFile, token)).Where(x => !string.IsNullOrWhiteSpace(x)).ToList()
-            : new List<string> { "ba208b6c-6f1a-43b1-867d-bc1adaff6445" };
+            : new List<string> { "bf82cec2-5f8a-407c-bf74-f8689ca35e83" };
 
         foreach (var id in ids)
         {
             if (token.IsCancellationRequested) break;
-            // FIX: Pass the token down to the method
             await IngestDatasetAsync(id, token);
         }
     }
 
-    // FIX: Added CancellationToken to method signature
     public async Task<Result> IngestDatasetAsync(string fileIdentifier, CancellationToken token = default)
     {
         try
         {
-            // A. Check duplicate
-            if (await _repository.ExistsAsync(fileIdentifier)) 
-            {
-                _logger.LogInformation($"Skipping {fileIdentifier} (Already exists in SQL)");
-                return Result.Success(); 
-            }
+            if (await _repository.ExistsAsync(fileIdentifier)) return Result.Success();
 
-            // =========================================================
-            // B. METADATA PROCESSING
-            // =========================================================
-            var formats = new[] 
+               var formats = new[] 
             { 
                 MetadataFormat.Iso19115Xml,     
                 MetadataFormat.JsonExpanded, 
@@ -120,7 +106,7 @@ public class EtlOrchestrator : IEtlService
                         dataset = new Dataset(fileIdentifier, dto.Title)
                         {
                             Abstract = dto.Abstract,
-                            Authors = dto.Authors,
+                            Authors = JsonSerializer.Serialize(dto.Authors),
                             PublishedDate = dto.PublishedDate,
                             Keywords = dto.Keywords,
                             ResourceUrl = dto.ResourceUrl
@@ -137,112 +123,183 @@ public class EtlOrchestrator : IEtlService
 
             if (dataset == null) return Result.Failure("Failed to initialize dataset (Primary XML missing).");
 
-            // =========================================================
-            // C. DOWNLOAD, EXTRACT & VECTORIZE
-            // =========================================================
-            var zipResult = await _cehClient.DownloadDatasetZipAsync(fileIdentifier);
-            if (!zipResult.IsSuccess)
-            {
-                zipResult = await _cehClient.DownloadSupportingDocsAsync(fileIdentifier);
+           
 
-            }
-
-            if (zipResult.IsSuccess)
+          
+        // 2. PRIMARY DATASET DOWNLOAD & TARGETED EXTRACTION
+        // =========================================================
+          
+            var primaryDataResult = await _cehClient.DownloadDatasetZipAsync(fileIdentifier);
+            if (primaryDataResult.IsSuccess)
             {
-                using var zipStream = zipResult.Value!;
-                var extractResult = await _archiveProcessor.ExtractDocumentsAsync(zipStream, dataset.Id);
-                
-                if (extractResult.IsSuccess)
+                using var zipStream = primaryDataResult.Value!;
+    
+                // Use the processor to extract content from the zip
+                var dataExtraction = await _archiveProcessor.ExtractDocumentsAsync(zipStream, dataset.Id);
+    
+                if (dataExtraction.IsSuccess)
                 {
                     var localFolder = Path.Combine(StorageRoot, dataset.Id.ToString());
                     Directory.CreateDirectory(localFolder);
-
-                    // List to hold vectors for batch upload
-                    var vectorsToSave = new List<EmbeddingVector>();
-                  
-                    foreach (var doc in extractResult.Value!)
+                    foreach (var extractedFile in dataExtraction.Value!)
                     {
-                        var validDocs = new[] { ".pdf", ".docx", ".json", ".html", ".txt", ".xml", ".ttl" };
-                        string extension = Path.GetExtension(doc.FileName).ToLower();
-                        
-                        if (!string.IsNullOrEmpty(doc.ExtractedText) && validDocs.Contains(extension) )
+                        // Requirement: Extract only files from the 'data' folder
+                        if (extractedFile.FileName.ToLower().Contains("data/"))
                         {
-                            // 1. Save File to Disk
-                            var safeName = Path.GetFileName(doc.FileName); 
-                            var fullPath = Path.Combine(localFolder, safeName);
-                            await File.WriteAllTextAsync(fullPath, doc.ExtractedText, token);
-                            doc.StoragePath = fullPath;
-
-                            // 2. RESTORED: Generate Embedding
-                            try 
+                            var safeFileName = Path.GetFileName(extractedFile.FileName);
+                            var filePath = Path.Combine(localFolder, safeFileName);
+                
+                            // Save the file content to disk
+                            // We use ExtractedText or converted bytes depending on your processor output
+                            await File.WriteAllTextAsync(filePath, extractedFile.ExtractedText ?? "", token);
+                
+                            // Create the SupportingDocument using your specific constructor
+                            var dataDoc = new DataFile(dataset.Id, safeFileName)
                             {
-                                // Limit text length for tokenization speed/safety
-                                var textToEmbed = doc.ExtractedText.Length > 1000 
-                                    ? doc.ExtractedText[..1000] 
-                                    : doc.ExtractedText;
+                                StoragePath = filePath,
+                                ExtractedText = extractedFile.ExtractedText ?? ""
+                            };
 
-                                var embedResult = await _embeddingService.GenerateEmbeddingAsync(textToEmbed, token);
-                                
-                                if (embedResult.IsSuccess)
-                                {
-                                    var vector = new EmbeddingVector(
-                                        sourceId: dataset.Id, 
-                                        type: VectorSourceType.DocumentContent,
-                                        text: textToEmbed,
-                                        vector: embedResult.Value!
-                                    );
-                                   
-                                    _logger.LogInformation(
-                                        "✅ Vector Created for file '{FileName}' | ID: {Id} | First 3 Dims: [{V1:F4}, {V2:F4}, {V3:F4} ...]",
-                                        doc.FileName,
-                                        vector.Id,
-                                        vector.Vector[0], vector.Vector[1], vector.Vector[2]
-                                    );
-                                    // 👆 -------------------------- 👆
-
-                                    vectorsToSave.Add(vector);
-            
-                                    // Optional: Double check the count immediately
-                                    _logger.LogInformation($"Current Vector Batch Count: {vectorsToSave.Count}");
-                                    
-                                }
-                                else
-                                {
-                                    _logger.LogWarning($"Embedding failed for {doc.FileName}: {embedResult.Error}");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, $"Error generating embedding for {doc.FileName}");
-                            }
+                            // Add to the dataset's document collection
+                            dataset.AddDocument(dataDoc);
+                
+                            _logger.LogInformation($"Extracted and saved primary data: {safeFileName}");
                         }
-                        
-                        dataset.AddDocument(doc);
                     }
+                }
+            }
+            else
+            {
+    
+                // 1. Fetch the HTML directory listing
+                var htmlResult = await _cehClient.GetDirectoryListingHtmlAsync(fileIdentifier);
 
-                    // 3. RESTORED: Upsert to Qdrant
-                    if (vectorsToSave.Any())
+                if (htmlResult.IsSuccess)
+                {
+                    string htmlContent = htmlResult.Value!;
+        
+                    // 2. Web Scrape file names using Regex 
+                    // This looks for href links that aren't the "Parent Directory"
+                    var fileMatches = Regex.Matches(htmlContent, @"<a href=""([^""]+?)"">([^<]+?\.[a-zA-Z0-9]{2,4})</a>");
+                    foreach (Match match in fileMatches)
                     {
-                        _logger.LogInformation($"Upserting {vectorsToSave.Count} vectors to Qdrant...");
-                        await _vectorStore.UpsertVectorsAsync(VectorCollectionName, vectorsToSave, token);
-                        _logger.LogInformation("✅ Qdrant upsert complete.");
-                    }
-                    else
-                    {
-                         _logger.LogWarning($"⚠️ No vectors were generated for dataset {fileIdentifier}. Qdrant was not updated.");
+                        
+                        var relativeUrl = match.Groups[1].Value; // e.g., "REDFIRE_Dose_Estimates.csv"
+                        var fileName = match.Groups[2].Value.Trim();
+
+                        // Skip navigation links
+                        if (fileName.Contains("Parent Directory") || string.IsNullOrEmpty(fileName))
+                            continue;
+
+                        // 3. Save only the Metadata to Database (No Download)
+                        var dataDoc = new DataFile(dataset.Id, fileName)
+                        {
+                            // We store the full URL in the NotMapped StoragePath for the UI to use
+                            StoragePath = $"{dataset.ResourceUrl}/{relativeUrl}",
+                            ExtractedText = "Remote file - metadata only"
+                        };
+
+                        dataset.AddDocument(dataDoc);
+                        _logger.LogInformation($"Scraped metadata for remote file: {fileName}");
                     }
                 }
             }
 
-            // D. Save Metadata to SQL Database
-            await _repository.AddAsync(dataset);
+            // =========================================================
+            // 3. SUPPORTING DOCS (Download + Vectorize)
+            // =========================================================
+            var supportingDocsResult = await _cehClient.DownloadSupportingDocsAsync(fileIdentifier);
+            if (supportingDocsResult.IsSuccess)
+            {
+                using var zipStream = supportingDocsResult.Value!;
+                var extractResult = await _archiveProcessor.ExtractDocumentsAsync(zipStream, dataset.Id);
+                
+                if (extractResult.IsSuccess)
+                {
+                    var vectorsToSave = new List<EmbeddingVector>();
+                    foreach (var doc in extractResult.Value!)
+                    {
+                     
+                        // Vectorize supporting documentation
+                        if (!string.IsNullOrWhiteSpace(doc.ExtractedText))
+                        {
+                            // 1. Prepare the Contextual Text for Embedding
+// Combining Metadata + Content ensures the vector is "aware" of its context
+                            var enrichmentBuilder = new StringBuilder();
+                            enrichmentBuilder.AppendLine($"Title: {dataset.Title}");
+                            enrichmentBuilder.AppendLine($"Abstract: {dataset.Abstract}");
+                            enrichmentBuilder.AppendLine($"Authors: {dataset.Authors}");
+                            enrichmentBuilder.AppendLine($"Keywords: {dataset.Keywords}");
+                            enrichmentBuilder.AppendLine($"Content: {doc.ExtractedText}");
 
+                            var fullText = enrichmentBuilder.ToString();
+
+// 2. Truncate for the Model (usually models have token limits)
+                            var textToEmbed = fullText.Length > 1000 ? fullText[..1000] : fullText;
+
+// 3. Generate Embedding
+                            var embedResult = await _embeddingService.GenerateEmbeddingAsync(textToEmbed, token);
+
+                            if (embedResult.IsSuccess)
+                            {
+                                // 4. Create Vector Object
+                                // Note: We still pass the original 'doc.ExtractedText' to 'textContent' 
+                                // so that we can show the actual file snippet in the UI search results.
+                                var vector = new EmbeddingVector(
+                                    dataset.Id, 
+                                    VectorSourceType.DocumentContent, 
+                                    doc.ExtractedText, 
+                                    embedResult.Value!,
+                                    dataset.Title, 
+                                    dataset.Abstract, 
+                                    dataset.Authors, 
+                                    dataset.Keywords
+                                );
+
+                                vectorsToSave.Add(vector);
+                            }
+                        }
+                       
+                    }
+
+                    if (vectorsToSave.Any())
+                    {
+                        await _vectorStore.UpsertVectorsAsync(VectorCollectionName, vectorsToSave, token);
+                        _logger.LogInformation($"✅ Successfully vectorized {vectorsToSave.Count} supporting documents.");
+                    }
+                }
+            }
+
+            // 4. PERSIST TO SQL
+            dataset.Authors = JsonSerializer.Deserialize<string>(dataset.Authors);
+            await _repository.AddAsync(dataset);
             return Result.Success();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "ETL Error");
-            return Result.Failure($"ETL Error: {ex.Message}");
+            _logger.LogError(ex, $"Ingestion failed for {fileIdentifier}");
+            return Result.Failure(ex.Message);
         }
+    }
+
+    private async Task<Dataset?> ParsePrimaryMetadata(string id, CancellationToken token)
+    {
+        var metaResult = await _cehClient.GetMetadataAsync(id, MetadataFormat.Iso19115Xml);
+        if (!metaResult.IsSuccess) return null;
+
+        var parser = _parserFactory.GetParser(MetadataFormat.Iso19115Xml);
+        var parseResult = parser.Parse(metaResult.Value!);
+        
+        if (!parseResult.IsSuccess) return null;
+        var dto = parseResult.Value!;
+
+        return new Dataset(id, dto.Title)
+        {
+            Abstract = dto.Abstract,
+            Authors = JsonSerializer.Serialize(dto.Authors),
+            Keywords = dto.Keywords,
+            ResourceUrl = dto.ResourceUrl,
+            PublishedDate = dto.PublishedDate
+        };
     }
 }
