@@ -9,4 +9,9 @@
         public string? Keywords { get; set; }
         public string? ResourceUrl { get; set; }
     }
+    
+   
+
+// In your ParsedMetadataDto
+    
 }
