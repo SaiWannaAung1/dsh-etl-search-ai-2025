@@ -4,8 +4,7 @@
     // Navigation items
     const navItems = [
         { name: 'Search', path: '/' },
-        { name: 'Ingestion', path: '/ingestion' },
-        { name: 'Analytics', path: '/analytics' }
+        { name: 'Chat', path: '/chat' }
     ];
 </script>
 
