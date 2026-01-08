@@ -78,4 +78,16 @@ public class CehCatalogueClient : ICehCatalogueClient
             return Result<Stream>.Failure($"Network error accessing {url}: {ex.Message}");
         }
     }
+    
+    public async Task<Result<string>> GetDirectoryListingHtmlAsync(string fileIdentifier)
+    {
+        // The directory listing is usually at the ResourceUrl found in the metadata
+        string url = $"{CatalogueBaseUrl}/datastore/eidchub/{fileIdentifier}/"; 
+        var response = await _httpClient.GetAsync(url);
+        if (!response.IsSuccessStatusCode) return Result<string>.Failure("Directory not accessible");
+        
+
+        string html =  response.Content.ReadAsStringAsync().Result;
+        return Result<string>.Success(html);
+    }
 }

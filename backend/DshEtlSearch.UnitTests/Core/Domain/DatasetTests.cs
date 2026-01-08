@@ -41,7 +41,7 @@ namespace DshEtlSearch.Tests.Unit.Core.Domain
 
             // FIX: Create the document object manually first
             // (Because you removed the helper method that took strings)
-            var doc = new SupportingDocument(dataset.Id, fileName);
+            var doc = new DataFile(dataset.Id, fileName);
 
             // Act
             dataset.AddDocument(doc);

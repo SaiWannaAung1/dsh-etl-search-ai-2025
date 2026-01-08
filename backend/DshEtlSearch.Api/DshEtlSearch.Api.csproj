@@ -34,6 +34,8 @@
     <_ContentIncludedByDefault Remove="DatasetStorage\45c15695-4cc4-4543-bbf8-ca797b6c6173\ro-crate-metadata.json" />
     <_ContentIncludedByDefault Remove="DatasetStorage\aca2d73d-8390-49a7-8cb8-e59b8d90657e\ro-crate-metadata.json" />
     <_ContentIncludedByDefault Remove="DatasetStorage\10d561c1-e328-4b56-bf80-30d58e3fcae7\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\bf80ebc7-48b8-4f2d-ace0-113496fe02fe\ro-crate-metadata.json" />
+    <_ContentIncludedByDefault Remove="DatasetStorage\d5d51c32-1058-4cb8-85ba-21dd8cacd9a0\ro-crate-metadata.json" />
   </ItemGroup>
 
   <ItemGroup>
