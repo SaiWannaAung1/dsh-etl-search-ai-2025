@@ -7,7 +7,7 @@ namespace DshEtlSearch.Core.Domain
         // --- COLUMNS SAVED TO DATABASE ---
         public Guid Id { get; private set; }
         public Guid DatasetId { get; private set; }
-        public string FileName { get; private set; }
+        public string FileName { get; set; }
         
         // --- NOT SAVED TO DATABASE (Memory Only) ---
         public string? StoragePath { get; set; } 
@@ -21,6 +21,8 @@ namespace DshEtlSearch.Core.Domain
             Id = Guid.NewGuid();
             DatasetId = datasetId;
             FileName = fileName;
-        }
+        }  
+        
+        
     }
 }

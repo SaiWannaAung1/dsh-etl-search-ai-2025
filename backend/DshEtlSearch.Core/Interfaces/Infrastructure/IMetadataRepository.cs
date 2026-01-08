@@ -4,6 +4,7 @@ namespace DshEtlSearch.Core.Interfaces.Infrastructure;
 
 public interface IMetadataRepository
 {
+    
     // --- Standard CRUD ---
     Task<Dataset?> GetByIdAsync(Guid id);
     Task<Dataset?> GetByFileIdentifierAsync(string fileIdentifier);
