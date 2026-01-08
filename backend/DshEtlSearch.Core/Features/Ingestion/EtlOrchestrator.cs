@@ -19,7 +19,7 @@ public class EtlOrchestrator : IEtlService
     private readonly IEmbeddingService _embeddingService;
     private readonly IVectorStore _vectorStore;
     private readonly ILogger<EtlOrchestrator> _logger;
-    
+    private readonly IGoogleDriveService _googleDriveService;
     private const string StorageRoot = "DatasetStorage";
     private const string VectorCollectionName = "research_data"; 
 
@@ -29,8 +29,9 @@ public class EtlOrchestrator : IEtlService
         IMetadataRepository repository,
         IMetadataParserFactory parserFactory,
         IEmbeddingService embeddingService, 
-        IVectorStore vectorStore,           
-        ILogger<EtlOrchestrator> logger)    
+        IVectorStore vectorStore,
+        ILogger<EtlOrchestrator> logger,
+        IGoogleDriveService googleDriveService) // <--- Add this parameter
     {
         _cehClient = cehClient;
         _archiveProcessor = archiveProcessor;
@@ -39,6 +40,7 @@ public class EtlOrchestrator : IEtlService
         _embeddingService = embeddingService;
         _vectorStore = vectorStore;
         _logger = logger;
+        _googleDriveService = googleDriveService; // <--- Assign it here
     }
 
     public async Task RunBatchIngestionAsync(CancellationToken token = default)
@@ -133,37 +135,48 @@ public class EtlOrchestrator : IEtlService
             if (primaryDataResult.IsSuccess)
             {
                 using var zipStream = primaryDataResult.Value!;
-    
-                // Use the processor to extract content from the zip
+
+// 1. Extract content from the ZIP (remains the same)
                 var dataExtraction = await _archiveProcessor.ExtractDocumentsAsync(zipStream, dataset.Id);
-    
+
                 if (dataExtraction.IsSuccess)
                 {
-                    var localFolder = Path.Combine(StorageRoot, dataset.Id.ToString());
-                    Directory.CreateDirectory(localFolder);
                     foreach (var extractedFile in dataExtraction.Value!)
                     {
-                        // Requirement: Extract only files from the 'data' folder
+                        // 2. Filter for files specifically in the 'data/' folder
                         if (extractedFile.FileName.ToLower().Contains("data/"))
                         {
                             var safeFileName = Path.GetFileName(extractedFile.FileName);
-                            var filePath = Path.Combine(localFolder, safeFileName);
-                
-                            // Save the file content to disk
-                            // We use ExtractedText or converted bytes depending on your processor output
-                            await File.WriteAllTextAsync(filePath, extractedFile.ExtractedText ?? "", token);
-                
-                            // Create the SupportingDocument using your specific constructor
-                            var dataDoc = new DataFile(dataset.Id, safeFileName)
-                            {
-                                StoragePath = filePath,
-                                ExtractedText = extractedFile.ExtractedText ?? ""
-                            };
+                            var textContent = extractedFile.ExtractedText ?? "";
 
-                            // Add to the dataset's document collection
-                            dataset.AddDocument(dataDoc);
-                
-                            _logger.LogInformation($"Extracted and saved primary data: {safeFileName}");
+                            try
+                            {
+                                // 3. Convert extracted text to a Stream for Google Drive
+
+                                // 4. UPLOAD TO GOOGLE DRIVE
+                                // We pass "text/plain" as the MIME type for extracted text files
+                                var driveUrl = await _googleDriveService.UploadFileAsync(
+                                    safeFileName, 
+                                    textContent, 
+                                    token
+                                );
+                                // 5. Create the DataFile object using the Google Drive Public Link
+                                var dataDoc = new DataFile(dataset.Id, safeFileName)
+                                {
+                                    StoragePath = driveUrl, // This is now the webViewLink (e.g. https://drive.google.com/...)
+                                    ExtractedText = textContent
+                                };
+
+                                // 6. Track document in the Dataset entity
+                                dataset.AddDocument(dataDoc);
+
+                                _logger.LogInformation($"✅ Successfully uploaded primary data to Google Drive: {safeFileName}");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, $"❌ Failed to upload {safeFileName} to Google Drive.");
+                                // Depending on requirements, you might want to 'continue' or 'return Result.Failure'
+                            }
                         }
                     }
                 }

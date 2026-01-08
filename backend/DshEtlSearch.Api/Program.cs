@@ -5,7 +5,8 @@ using DshEtlSearch.Infrastructure.Data.SQLite;
 using DshEtlSearch.Infrastructure.Data.VectorStore;
 using DshEtlSearch.Infrastructure.ExternalServices;
 using DshEtlSearch.Infrastructure.ExternalServices.Ai;
-using DshEtlSearch.Infrastructure.ExternalServices.Ceh; // Correct namespace for OnnxEmbeddingService
+using DshEtlSearch.Infrastructure.ExternalServices.Ceh;
+using DshEtlSearch.Infrastructure.ExternalServices.GoogleDrive; // Correct namespace for OnnxEmbeddingService
 using Microsoft.EntityFrameworkCore;
 using Qdrant.Client;
 
@@ -58,6 +59,8 @@ builder.Services.AddScoped<IVectorStore, QdrantVectorStore>();
 // D. Register Embedding Service (THE MISSING PIECE)
 // We use Singleton because loading the AI model takes time/memory
 builder.Services.AddSingleton<IEmbeddingService, OnnxEmbeddingService>();
+
+builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
 
 // =========================================================
 // 2. BUILD APP
