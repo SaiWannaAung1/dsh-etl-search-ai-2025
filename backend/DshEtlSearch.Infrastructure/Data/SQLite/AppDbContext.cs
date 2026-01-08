@@ -7,7 +7,7 @@ namespace DshEtlSearch.Infrastructure.Data.SQLite
     {
         public DbSet<Dataset> Datasets { get; set; }
         public DbSet<MetadataRecord> MetadataRecords { get; set; }
-        public DbSet<SupportingDocument> SupportingDocuments { get; set; }
+        public DbSet<DataFile> SupportingDocuments { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {

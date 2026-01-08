@@ -17,9 +17,9 @@ public class ArchiveProcessor : IArchiveProcessor
         _logger = logger;
     }
 
-    public async Task<Result<List<SupportingDocument>>> ExtractDocumentsAsync(Stream archiveStream, Guid datasetId)
+    public async Task<Result<List<DataFile>>> ExtractDocumentsAsync(Stream archiveStream, Guid datasetId)
     {
-        var documents = new List<SupportingDocument>();
+        var documents = new List<DataFile>();
 
         try
         {
@@ -29,7 +29,7 @@ public class ArchiveProcessor : IArchiveProcessor
             {
                 if (string.IsNullOrEmpty(entry.Name)) continue;
 
-                var doc = new SupportingDocument(datasetId, entry.FullName);
+                var doc = new DataFile(datasetId, entry.FullName);
                 var extension = Path.GetExtension(entry.Name).ToLower();
 
                 using (var entryStream = entry.Open())
@@ -51,12 +51,12 @@ public class ArchiveProcessor : IArchiveProcessor
                 }
             }
 
-            return Result<List<SupportingDocument>>.Success(documents);
+            return Result<List<DataFile>>.Success(documents);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process zip archive");
-            return Result<List<SupportingDocument>>.Failure(ex.Message);
+            return Result<List<DataFile>>.Failure(ex.Message);
         }
     }
 
