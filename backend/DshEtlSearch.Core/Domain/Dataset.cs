@@ -18,6 +18,7 @@ namespace DshEtlSearch.Core.Domain
         public DateTime? PublishedDate { get; set; }
         public string? Keywords { get; set; }
         public string? ResourceUrl { get; set; }
+        
 
         public DateTime IngestedAt { get; private set; } = DateTime.UtcNow;
         public DateTime? LastUpdated { get; private set; }

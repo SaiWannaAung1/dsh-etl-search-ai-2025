@@ -155,15 +155,16 @@ public class EtlOrchestrator : IEtlService
 
                                 // 4. UPLOAD TO GOOGLE DRIVE
                                 // We pass "text/plain" as the MIME type for extracted text files
-                                var driveUrl = await _googleDriveService.UploadFileAsync(
+                                var driveUrl = await _googleDriveService.UploadFileToDocumentFolderAsync(
                                     safeFileName, 
                                     textContent, 
+                                    dataset.FileIdentifier,
                                     token
                                 );
                                 // 5. Create the DataFile object using the Google Drive Public Link
                                 var dataDoc = new DataFile(dataset.Id, safeFileName)
                                 {
-                                    StoragePath = driveUrl, // This is now the webViewLink (e.g. https://drive.google.com/...)
+                                    StoragePath = driveUrl.FileDownloadLink, // This is now the webViewLink (e.g. https://drive.google.com/...)
                                     ExtractedText = textContent
                                 };
 
