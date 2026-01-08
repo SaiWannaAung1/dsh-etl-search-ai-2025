@@ -17,6 +17,8 @@ public interface IMetadataRepository
     Task<List<Dataset>> ListAsync(ISpecification<Dataset> spec);
     Task<Dataset?> GetEntityWithSpec(ISpecification<Dataset> spec);
     
+    Task<List<DataFile>> ListFilesAsync(ISpecification<DataFile> spec);
+    
     // --- Transaction Management ---
     Task<int> SaveChangesAsync();
 }

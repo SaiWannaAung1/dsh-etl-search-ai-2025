@@ -33,6 +33,11 @@ public class SqliteMetadataRepository : IMetadataRepository
             .Include(d => d.SupportingDocuments)
             .FirstOrDefaultAsync(d => d.FileIdentifier == fileIdentifier);
     }
+    public async Task<List<DataFile>> ListFilesAsync(ISpecification<DataFile> spec)
+    {
+        var query = ApplyFileSpecification(spec);
+        return await query.ToListAsync();
+    }
 
     public async Task AddAsync(Dataset dataset)
     {
@@ -92,6 +97,28 @@ public class SqliteMetadataRepository : IMetadataRepository
         }
 
         if (spec.Includes != null)
+        {
+            query = spec.Includes.Aggregate(query, (current, include) => current.Include(include));
+        }
+
+        return query;
+    }
+    
+    // NEW: Helper specific to the SupportingDocuments DbSet
+    private IQueryable<DataFile> ApplyFileSpecification(ISpecification<DataFile> spec)
+    {
+        // Use AsNoTracking() because this is a Read-Only search (better performance)
+        var query = _context.SupportingDocuments.AsNoTracking().AsQueryable();
+
+        // IMPORTANT: If spec.Criteria is null, this 'Where' is skipped, 
+        // which causes the "retrieves all data" bug.
+        if (spec.Criteria != null)
+        {
+            query = query.Where(spec.Criteria);
+        }
+
+        // Apply any eager loading (Includes)
+        if (spec.Includes != null && spec.Includes.Any())
         {
             query = spec.Includes.Aggregate(query, (current, include) => current.Include(include));
         }

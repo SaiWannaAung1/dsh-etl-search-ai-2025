@@ -1,5 +1,6 @@
 using DshEtlSearch.Api.Models.Requests;
 using DshEtlSearch.Api.Models.Responses;
+using DshEtlSearch.Core.Common;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using DshEtlSearch.Core.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -124,6 +125,39 @@ public class SearchController : ControllerBase
     }
     
     
+    [HttpGet("{id}/files")]
+    public async Task<ActionResult<List<DataFileResponse>>> GetFilesByDataSetId(Guid id)
+    {
+        try
+        {
+            _logger.LogInformation($"Retrieving file list for Dataset: {id}");
+
+            // 1. Define the search rule using the Specification Pattern
+            var spec = new DataFilesByDatasetIdSpecification(id);
+
+            // 2. Fetch from the repository (SupportingDocuments table)
+            var files = await _repository.ListFilesAsync(spec);
+
+            if (files == null || !files.Any())
+            {
+                return NotFound(new { message = "No data files associated with this record." });
+            }
+
+            // 3. Map to the DTO to produce the name and resource link
+            var response = files.Where(f=> f.DatasetId == id).Select(f => new DataFileResponse
+            {
+                FileName = f.FileName,
+                StoragePath = f.StoragePath
+            }).ToList();
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching files for {id}");
+            return StatusCode(500, "Internal server error");
+        }
+    }
     
 // Helper method to limit text to a specific word count
 private string TruncateWords(string text, int wordCount)

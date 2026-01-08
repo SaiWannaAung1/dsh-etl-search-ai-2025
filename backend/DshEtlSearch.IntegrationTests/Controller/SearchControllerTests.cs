@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using DshEtlSearch.Api.Models.Requests;
 using DshEtlSearch.Api.Models.Responses;
 using DshEtlSearch.Core.Common;
+using DshEtlSearch.Core.Domain; // Added to access the Dataset entity
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using DshEtlSearch.Core.Interfaces.Services;
 using FluentAssertions;
@@ -21,11 +22,11 @@ public class SearchControllerTests : IClassFixture<WebApplicationFactory<Program
 
     public SearchControllerTests(WebApplicationFactory<Program> factory)
     {
-        // Setup the test server and inject our mocks instead of real services
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureServices(services =>
             {
+                // Inject our mocks into the test server's DI container
                 services.AddScoped(_ => _mockEmbedding.Object);
                 services.AddScoped(_ => _mockVectorStore.Object);
                 services.AddScoped(_ => _mockRepo.Object);
@@ -39,19 +40,32 @@ public class SearchControllerTests : IClassFixture<WebApplicationFactory<Program
         // Arrange
         var client = _factory.CreateClient();
         var datasetId = Guid.NewGuid();
+        var documentId = Guid.NewGuid(); // Represents the specific vector point ID
         var request = new SearchRequest { Query = "climate change", Limit = 5, MinimumScore = 0.5f };
 
-        // Mock Embedding Service
-        _mockEmbedding.Setup(x => x.GenerateEmbeddingAsync(It.IsAny<string>(), default))
+        // 1. Mock Embedding Service
+        _mockEmbedding.Setup(x => x.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<float[]>.Success(new float[384]));
 
-        // Mock Vector Store Results (Matching the snippet extracted from DOCX/PDF)
+        // 2. Mock Vector Store (Qdrant) Results
         var searchHits = new List<VectorSearchResult>
         {
-            new VectorSearchResult(datasetId, "This is a snippet about climate change.", 0.85f)
+            // Note: We assign hit.Id so DocumentId can be populated in the response
+            new VectorSearchResult(datasetId, "Chunk of text content...", 0.85f) { SourceId = documentId }
         };
-        _mockVectorStore.Setup(x => x.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), It.IsAny<int>(), default))
+        _mockVectorStore.Setup(x => x.SearchAsync(It.IsAny<string>(), It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(searchHits);
+
+        // 3. Mock Metadata Repository
+        // The controller now calls repository.GetByIdAsync to get Title, Authors, and Abstract
+        var mockDataset = new Dataset("EIDC-123", "Climate Study 2024")
+        {
+            Authors = "Barnett, C. from UKCEH / Wells, C. from UKCEH",
+            Abstract = "This is a detailed abstract about climate change that should be truncated to 50 words."
+        };
+        
+        _mockRepo.Setup(x => x.GetByIdAsync(datasetId))
+            .ReturnsAsync(mockDataset);
 
         // Act
         var response = await client.PostAsJsonAsync("/api/search", request);
@@ -62,8 +76,17 @@ public class SearchControllerTests : IClassFixture<WebApplicationFactory<Program
         
         results.Should().NotBeNull();
         results!.Should().HaveCount(1);
-        results[0].Snippet.Should().Be("This is a snippet about climate change.");
+        
+        // Assertions matching your new SearchResponse properties
+        results[0].DatasetId.Should().Be(datasetId);
+        results[0].DocumentId.Should().Be(documentId.ToString());
+        results[0].Title.Should().Be("Climate Study 2024");
+        results[0].Authors.Should().Be("Barnett, C. from UKCEH / Wells, C. from UKCEH");
         results[0].ConfidenceScore.Should().Be(0.85f);
+        
+        // Ensure the preview abstract is populated (and truncated if it was long)
+        results[0].PreviewAbstract.Should().NotBeEmpty();
+        results[0].PreviewAbstract.Should().Contain("climate change");
     }
 
     [Fact]
