@@ -84,6 +84,47 @@ public class SearchController : ControllerBase
             return StatusCode(500, "Internal error");
         }
     }
+    
+    
+    [HttpGet("{id}")]
+    public async Task<ActionResult<DatasetDetailResponse>> GetById(Guid id)
+    {
+        try
+        {
+            // 1. Fetch from SQLite Repository
+            var dataset = await _repository.GetByIdAsync(id);
+
+            if (dataset == null)
+            {
+                _logger.LogWarning($"Dataset with ID {id} not found.");
+                return NotFound(new { message = "Dataset not found." });
+            }
+
+            // 2. Map Domain Entity to Response DTO
+            var response = new DatasetDetailResponse
+            {
+                DatasetId = dataset.Id,
+                DocumentId = dataset.FileIdentifier, // Maps the internal ID/Code
+                Title = dataset.Title,
+                Abstract = dataset.Abstract,
+                Authors = dataset.Authors ?? "Unknown",
+                Keywords = dataset.Keywords,
+                ResourceUrl = dataset.ResourceUrl,
+                PublishedDate = dataset.PublishedDate,
+                IngestedAt = dataset.IngestedAt
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error retrieving dataset {id}");
+            return StatusCode(500, "Internal server error while fetching details.");
+        }
+    }
+    
+    
+    
 // Helper method to limit text to a specific word count
 private string TruncateWords(string text, int wordCount)
 {
@@ -97,5 +138,6 @@ private string TruncateWords(string text, int wordCount)
     
     
     
+
     
 }
