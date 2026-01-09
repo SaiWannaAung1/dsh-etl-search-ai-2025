@@ -86,8 +86,8 @@ jobs:
           dotnet-quality: preview
 
       - run: dotnet test ./backend/DshEtlSearch.IntegrationTests/DshEtlSearch.IntegrationTests.csproj --verbosity normal
-  
-  
+
+
   # ---------------------------------------------------
   # FRONTEND (SVELTE 5)
   # ---------------------------------------------------
@@ -109,4 +109,27 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+  
+  frontend-tests:
+    name: Frontend / Unit & Integration Tests
+    runs-on: ubuntu-latest
+    # We run tests after build to ensure code compiles first
+    needs: frontend-build
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - run: npm ci
+
+      # This command runs Vitest once and exits (non-watch mode)
+      # Ensure "test:unit" is defined in your package.json as "vitest run"
+      - name: Run Vitest
+        run: npm run test:unit
 
