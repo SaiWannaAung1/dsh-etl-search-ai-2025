@@ -42,4 +42,10 @@
     <Folder Include="DatasetStorage\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="model.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
