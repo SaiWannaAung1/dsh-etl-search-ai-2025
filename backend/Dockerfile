@@ -9,7 +9,8 @@ COPY DshEtlSearch.slnx ./
 COPY DshEtlSearch.Api/DshEtlSearch.Api.csproj DshEtlSearch.Api/
 COPY DshEtlSearch.Core/DshEtlSearch.Core.csproj DshEtlSearch.Core/
 COPY DshEtlSearch.Infrastructure/DshEtlSearch.Infrastructure.csproj DshEtlSearch.Infrastructure/
-COPY DshEtlSearch.Tests/DshEtlSearch.Tests.csproj DshEtlSearch.Tests/
+COPY DshEtlSearch.UnitTests/DshEtlSearch.UnitTests.csproj DshEtlSearch.UnitTests/
+COPY DshEtlSearch.IntegrationTests/DshEtlSearch.IntegrationTests.csproj DshEtlSearch.IntegrationTests/
 
 # Restore (API project only — safest with slnx)
 RUN dotnet restore DshEtlSearch.Api/DshEtlSearch.Api.csproj
@@ -29,6 +30,6 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-EXPOSE 80801
+EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "DshEtlSearch.Api.dll"]

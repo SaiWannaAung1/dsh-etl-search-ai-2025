@@ -4,6 +4,7 @@ namespace DshEtlSearch.Core.Interfaces.Infrastructure;
 
 public interface IMetadataRepository
 {
+    
     // --- Standard CRUD ---
     Task<Dataset?> GetByIdAsync(Guid id);
     Task<Dataset?> GetByFileIdentifierAsync(string fileIdentifier);
@@ -16,6 +17,8 @@ public interface IMetadataRepository
     // These allow advanced querying (e.g., search filters) without changing the interface
     Task<List<Dataset>> ListAsync(ISpecification<Dataset> spec);
     Task<Dataset?> GetEntityWithSpec(ISpecification<Dataset> spec);
+    
+    Task<List<DataFile>> ListFilesAsync(ISpecification<DataFile> spec);
     
     // --- Transaction Management ---
     Task<int> SaveChangesAsync();

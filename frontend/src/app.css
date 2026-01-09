@@ -1,0 +1,53 @@
+﻿@import "tailwindcss";
+
+/* 1. Base Styles & Material Resets */
+@layer base {
+    :root {
+        --md-primary: #2563eb; /* Blue 600 */
+        --md-bg: #f8fafc;     /* Slate 50 */
+    }
+
+    body {
+        @apply bg-slate-50 text-slate-900 antialiased;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    /* Modern Scrollbar for Material Feel */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+    }
+}
+
+/* 2. Utility Classes for Ingestion/Search UI */
+@layer components {
+    .card-material {
+        @apply bg-white rounded-xl shadow-sm border border-slate-200 transition-all duration-300 hover:shadow-md;
+    }
+
+    .input-material {
+        @apply w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all;
+    }
+
+    .btn-primary {
+        @apply px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2;
+    }
+}
+
+/* 3. Animations for Ingestion Status */
+@keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-pulse-soft {
+    animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

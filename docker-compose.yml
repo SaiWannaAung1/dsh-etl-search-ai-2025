@@ -35,20 +35,33 @@ services:
       - ./data/temp:/app/temp:z     # Temporary download folder
     depends_on:
       - qdrant
+    deploy:
+      resources:
+        limits:
+          memory: 8G
     restart: on-failure
 
 
   # ---------------------------------------------------------------------------
   # 3. Frontend (Svelte - Placeholder)
   # ---------------------------------------------------------------------------
-#  frontend:
-#    build:
-#      context: ./frontend
-#      dockerfile: Dockerfile
-#    container_name: dsh-frontend
-#    ports:
-#      - "3000:3000"
-#    environment:
-#      - PUBLIC_API_URL=http://localhost:5000
-#    depends_on:
-#      - backend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dsh-frontend
+    ports:
+      - "5173:3000" # Maps your browser at :5173 to Node at :3000
+    environment:
+      - NODE_ENV=production
+      # This is for Server-Side Rendering (Internal Docker Network)
+      - API_INTERNAL_URL=http://backend:8080
+      # This is for Client-Side (Your Browser)
+      - PUBLIC_API_URL=http://localhost:5000/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+  
+networks:
+  default:
+    name: dsh-network

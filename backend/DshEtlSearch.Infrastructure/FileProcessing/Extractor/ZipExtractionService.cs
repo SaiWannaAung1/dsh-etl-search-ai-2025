@@ -20,9 +20,9 @@ public class ZipExtractionService : IArchiveProcessor
         _logger = logger;
     }
 
-    public async Task<Result<List<SupportingDocument>>> ExtractDocumentsAsync(Stream archiveStream, Guid datasetId)
+    public async Task<Result<List<DataFile>>> ExtractDocumentsAsync(Stream archiveStream, Guid datasetId)
     {
-        var documents = new List<SupportingDocument>();
+        var documents = new List<DataFile>();
 
         try
         {
@@ -62,7 +62,7 @@ public class ZipExtractionService : IArchiveProcessor
                 }
 
                 // FIX: Pass entry.FullName here so it includes "supporting-documents/"
-                var doc = new SupportingDocument(datasetId, entry.FullName)
+                var doc = new DataFile(datasetId, entry.FullName)
                 {
                     ExtractedText = content
                 };
@@ -70,12 +70,12 @@ public class ZipExtractionService : IArchiveProcessor
                 documents.Add(doc);
             }
 
-            return Result<List<SupportingDocument>>.Success(documents);
+            return Result<List<DataFile>>.Success(documents);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to extract zip archive");
-            return Result<List<SupportingDocument>>.Failure(ex.Message);
+            return Result<List<DataFile>>.Failure(ex.Message);
         }
     }
     

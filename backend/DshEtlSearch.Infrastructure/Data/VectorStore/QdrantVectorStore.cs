@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DshEtlSearch.Core.Common;
 using DshEtlSearch.Core.Domain;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
@@ -57,10 +58,12 @@ namespace DshEtlSearch.Infrastructure.Data.VectorStore
                 // 2. Add Metadata manually (Payload property is Read-Only, so we use .Add)
                 point.Payload.Add("source_id", new Value { StringValue = v.SourceId.ToString() });
                 point.Payload.Add("source_type", new Value { StringValue = v.SourceType.ToString() });
+                point.Payload.Add("source_Authors", new Value { StringValue = JsonSerializer.Deserialize<string>(v.Authors) });
+               
                 
                 if (!string.IsNullOrEmpty(v.TextContent))
                 {
-                    point.Payload.Add("text_content", new Value { StringValue = v.TextContent });
+                    point.Payload.Add("text_content", new Value { StringValue = v.TextContent   });
                 }
 
                 return point;

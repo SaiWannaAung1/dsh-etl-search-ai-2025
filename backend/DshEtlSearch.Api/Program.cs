@@ -5,7 +5,8 @@ using DshEtlSearch.Infrastructure.Data.SQLite;
 using DshEtlSearch.Infrastructure.Data.VectorStore;
 using DshEtlSearch.Infrastructure.ExternalServices;
 using DshEtlSearch.Infrastructure.ExternalServices.Ai;
-using DshEtlSearch.Infrastructure.ExternalServices.Ceh; // Correct namespace for OnnxEmbeddingService
+using DshEtlSearch.Infrastructure.ExternalServices.Ceh;
+using DshEtlSearch.Infrastructure.ExternalServices.GoogleDrive; // Correct namespace for OnnxEmbeddingService
 using Microsoft.EntityFrameworkCore;
 using Qdrant.Client;
 
@@ -35,6 +36,21 @@ builder.Services.AddSingleton<QdrantClient>(sp =>
     return new QdrantClient(host, port, https, apiKey: string.IsNullOrWhiteSpace(apiKey) ? null : apiKey);
 });
 
+// --- 1. Define the Policy Name ---
+const string myAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+// --- 2. Add CORS Service ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: myAllowSpecificOrigins,
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173") // Your Svelte dev URL
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
 
 builder.Services.AddScoped<ILlmService, GeminiLlmService>();
 // C. Register Vector Store Wrapper
@@ -43,6 +59,8 @@ builder.Services.AddScoped<IVectorStore, QdrantVectorStore>();
 // D. Register Embedding Service (THE MISSING PIECE)
 // We use Singleton because loading the AI model takes time/memory
 builder.Services.AddSingleton<IEmbeddingService, OnnxEmbeddingService>();
+
+builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
 
 // =========================================================
 // 2. BUILD APP
@@ -88,7 +106,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 
-
+// UseCors MUST be between UseRouting and UseAuthorization
+app.UseCors(myAllowSpecificOrigins);
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

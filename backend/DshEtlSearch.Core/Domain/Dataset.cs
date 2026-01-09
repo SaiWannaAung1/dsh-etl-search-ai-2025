@@ -18,6 +18,7 @@ namespace DshEtlSearch.Core.Domain
         public DateTime? PublishedDate { get; set; }
         public string? Keywords { get; set; }
         public string? ResourceUrl { get; set; }
+        
 
         public DateTime IngestedAt { get; private set; } = DateTime.UtcNow;
         public DateTime? LastUpdated { get; private set; }
@@ -25,7 +26,7 @@ namespace DshEtlSearch.Core.Domain
         // --- FIX: Use a List to store multiple formats ---
         public List<MetadataRecord> MetadataRecords { get; private set; } = new();
 
-        public List<SupportingDocument> SupportingDocuments { get; private set; } = new();
+        public List<DataFile> SupportingDocuments { get; private set; } = new();
         public List<EmbeddingVector> Embeddings { get; private set; } = new();
 
         private Dataset() { }
@@ -42,7 +43,7 @@ namespace DshEtlSearch.Core.Domain
             IngestedAt = DateTime.UtcNow;
         }
 
-        public void AddDocument(SupportingDocument doc)
+        public void AddDocument(DataFile doc)
         {
             SupportingDocuments.Add(doc);
             LastUpdated = DateTime.UtcNow;

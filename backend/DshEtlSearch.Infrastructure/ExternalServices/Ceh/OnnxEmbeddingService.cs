@@ -4,7 +4,8 @@ using DshEtlSearch.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using BERTTokenizers; 
+using BERTTokenizers;
+using System.Linq;
 
 namespace DshEtlSearch.Infrastructure.ExternalServices.Ceh
 {
@@ -14,27 +15,25 @@ namespace DshEtlSearch.Infrastructure.ExternalServices.Ceh
         private readonly BertUncasedBaseTokenizer _tokenizer; 
         private readonly ILogger<OnnxEmbeddingService> _logger;
 
-        // BGE-Small uses 384 dimensions
         public int VectorSize => 384; 
 
-        // Constructor now finds the path automatically
         public OnnxEmbeddingService(ILogger<OnnxEmbeddingService> logger)
         {
             _logger = logger;
             try 
             {
-                // 1. Locate model in the build output folder (bin/Debug/net10.0/)
                 var modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "model.onnx");
                 
                 if (!File.Exists(modelPath))
                 {
-                    throw new FileNotFoundException($"Model not found at {modelPath}. Did you set 'Copy to Output Directory'?");
+                    throw new FileNotFoundException($"Model not found at {modelPath}.");
                 }
 
                 var options = new SessionOptions(); 
+                // Optimization: Use all available CPU cores for big data processing
+                options.IntraOpNumThreads = Environment.ProcessorCount;
                 _session = new InferenceSession(modelPath, options);
                 
-                // 2. Initialize Tokenizer (Use Base for bge-small)
                 _tokenizer = new BertUncasedBaseTokenizer();
             }
             catch (Exception ex)
@@ -44,90 +43,148 @@ namespace DshEtlSearch.Infrastructure.ExternalServices.Ceh
             }
         }
 
+        /// <summary>
+        /// Handles 5,000+ words by chunking and averaging embeddings.
+        /// </summary>
         public async Task<Result<float[]>> GenerateEmbeddingAsync(string text, CancellationToken token = default)
         {
-            return await Task.Run(() => 
+            if (string.IsNullOrWhiteSpace(text)) return Result<float[]>.Failure("Empty text");
+
+            try
             {
-                try
+                // 1. Chunk long text (approx 300 words per 512 tokens)
+                var chunks = ChunkText(text, maxWordsPerChunk: 300);
+
+                // 2. Use the Batch method to process all chunks of this single document efficiently
+                var batchResult = await GenerateEmbeddingsBatchAsync(chunks, token);
+                if (!batchResult.IsSuccess) return Result<float[]>.Failure(batchResult.Error);
+
+                var vectors = batchResult.Value!;
+
+                // 3. Global Mean Pooling: Average all chunks into one document vector
+                var finalVector = new float[VectorSize];
+                foreach (var vec in vectors)
                 {
-                    if (string.IsNullOrWhiteSpace(text)) return Result<float[]>.Failure("Empty text");
-
-                    // A. Encode
-                    var encodedList = _tokenizer.Encode(512, text);
-
-                    // B. Extract Arrays (LINQ style)
-                    var inputIds = encodedList.Select(t => t.InputIds).ToArray();
-                    var tokenTypeIds = encodedList.Select(t => t.TokenTypeIds).ToArray();
-                    var attentionMask = encodedList.Select(t => t.AttentionMask).ToArray();
-
-                    // C. Create Tensors (No 'using' here)
-                    var dimensions = new[] { 1, inputIds.Length };
-
-                    var inputIdsTensor = new DenseTensor<long>(inputIds, dimensions);
-                    var attentionMaskTensor = new DenseTensor<long>(attentionMask, dimensions);
-                    var tokenTypeIdsTensor = new DenseTensor<long>(tokenTypeIds, dimensions);
-
-                    var inputs = new List<NamedOnnxValue>
-                    {
-                        NamedOnnxValue.CreateFromTensor("input_ids", inputIdsTensor),
-                        NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor),
-                        NamedOnnxValue.CreateFromTensor("token_type_ids", tokenTypeIdsTensor)
-                    };
-
-                    // D. Run Inference
-                    using var results = _session.Run(inputs);
-                    var output = results.First().AsTensor<float>();
-
-                    // E. Post-Processing
-                    var vector = MeanPooling(output, attentionMask);
-                    var normalized = Normalize(vector);
-
-                    return Result<float[]>.Success(normalized);
+                    for (int i = 0; i < VectorSize; i++) finalVector[i] += vec[i];
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Embedding generation failed");
-                    return Result<float[]>.Failure($"Embedding failed: {ex.Message}");
-                }
-            }, token);
-        }
 
-        public async Task<Result<List<float[]>>> GenerateEmbeddingsBatchAsync(List<string> texts, CancellationToken token = default)
-        {
-            var results = new List<float[]>();
-            foreach (var text in texts)
-            {
-                var res = await GenerateEmbeddingAsync(text, token);
-                if (res.IsSuccess) results.Add(res.Value!);
-                else return Result<List<float[]>>.Failure($"Batch failed: {res.Error}");
+                for (int i = 0; i < VectorSize; i++) finalVector[i] /= vectors.Count;
+
+                return Result<float[]>.Success(Normalize(finalVector));
             }
-            return Result<List<float[]>>.Success(results);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Long text embedding failed");
+                return Result<float[]>.Failure(ex.Message);
+            }
         }
 
-        private float[] MeanPooling(Tensor<float> output, long[] attentionMask)
+        /// <summary>
+        /// Optimized for Big Datastores: Processes multiple texts in a single ONNX pass.
+        /// </summary>
+    public async Task<Result<List<float[]>>> GenerateEmbeddingsBatchAsync(List<string> texts, CancellationToken token = default)
+{
+    return await Task.Run(() =>
+    {
+        try
         {
-            var hiddenSize = VectorSize;
-            var sequenceLength = attentionMask.Length;
-            var pooled = new float[hiddenSize];
+            if (texts == null || !texts.Any()) 
+                return Result<List<float[]>>.Success(new List<float[]>());
+
+            // 1. Tokenize each sentence. 
+            // Result is a List of "Lists of Tokens"
+            var encodedSentences = texts.Select(text => _tokenizer.Encode(512, text)).ToList();
+
+            // 2. Explicitly specify type arguments <TSource, TResult> to fix the inference error
+            // TSource: The token object returned by the library (usually 'EncodedToken' or 'BertId')
+            // TResult: long (because we want a flat array of longs)
+            
+            var flatInputIds = encodedSentences
+                .SelectMany(sentence => sentence.Select(token => token.InputIds))
+                .ToArray();
+
+            var flatTokenTypeIds = encodedSentences
+                .SelectMany(sentence => sentence.Select(token => token.TokenTypeIds))
+                .ToArray();
+
+            var flatAttentionMask = encodedSentences
+                .SelectMany(sentence => sentence.Select(token => token.AttentionMask))
+                .ToArray();
+
+            // 3. Define the Tensor Dimensions [BatchSize, SequenceLength]
+            int batchSize = texts.Count;
+            int sequenceLength = 512;
+            var dimensions = new[] { batchSize, sequenceLength };
+
+            // 4. Create Tensors
+            var inputIdsTensor = new DenseTensor<long>(flatInputIds, dimensions);
+            var attentionMaskTensor = new DenseTensor<long>(flatAttentionMask, dimensions);
+            var tokenTypeIdsTensor = new DenseTensor<long>(flatTokenTypeIds, dimensions);
+
+            var inputs = new List<NamedOnnxValue>
+            {
+                NamedOnnxValue.CreateFromTensor("input_ids", inputIdsTensor),
+                NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor),
+                NamedOnnxValue.CreateFromTensor("token_type_ids", tokenTypeIdsTensor)
+            };
+
+            // 5. Run Inference and Post-Process
+            using var results = _session.Run(inputs);
+            var output = results.First().AsTensor<float>();
+
+            var finalResults = new List<float[]>();
+            for (int i = 0; i < batchSize; i++)
+            {
+                // Pull out the specific 512-length mask for this sentence in the batch
+                var rowMask = flatAttentionMask.Skip(i * sequenceLength).Take(sequenceLength).ToArray();
+                var vector = MeanPooling(output, rowMask, i);
+                finalResults.Add(Normalize(vector));
+            }
+
+            return Result<List<float[]>>.Success(finalResults);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Batch embedding failed");
+            return Result<List<float[]>>.Failure(ex.Message);
+        }
+    }, token);
+}
+        private float[] MeanPooling(Tensor<float> output, long[] attentionMask, int batchIndex = 0)
+        {
+            var pooled = new float[VectorSize];
             int validCount = 0;
 
-            for (int i = 0; i < sequenceLength; i++)
+            for (int i = 0; i < attentionMask.Length; i++)
             {
                 if (attentionMask[i] == 0) continue;
                 validCount++;
-                for (int j = 0; j < hiddenSize; j++) pooled[j] += output[0, i, j];
+                for (int j = 0; j < VectorSize; j++) 
+                    pooled[j] += output[batchIndex, i, j];
             }
 
             if (validCount > 0)
-                for (int j = 0; j < hiddenSize; j++) pooled[j] /= validCount;
+                for (int j = 0; j < VectorSize; j++) pooled[j] /= validCount;
 
             return pooled;
         }
 
         private float[] Normalize(float[] vector)
         {
-            var len = (float)Math.Sqrt(vector.Sum(x => x * x));
-            return len == 0 ? vector : vector.Select(x => x / len).ToArray();
+            var sum = vector.Sum(x => x * x);
+            var len = (float)Math.Sqrt(sum);
+            return len < 1e-9f ? vector : vector.Select(x => x / len).ToArray();
+        }
+
+        private List<string> ChunkText(string text, int maxWordsPerChunk)
+        {
+            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var chunks = new List<string>();
+            for (int i = 0; i < words.Length; i += maxWordsPerChunk)
+            {
+                chunks.Add(string.Join(" ", words.Skip(i).Take(maxWordsPerChunk)));
+            }
+            return chunks;
         }
 
         public void Dispose() => _session?.Dispose();
