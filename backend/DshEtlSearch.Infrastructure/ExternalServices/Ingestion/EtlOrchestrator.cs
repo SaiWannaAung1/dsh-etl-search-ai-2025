@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace DshEtlSearch.Core.Features.Ingestion;
+namespace DshEtlSearch.Infrastructure.ExternalServices.Ingestion;
 
 public class EtlOrchestrator : IEtlService
 {

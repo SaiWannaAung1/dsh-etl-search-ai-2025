@@ -11,4 +11,8 @@
     <PackageReference Include="xunit.assert" Version="2.9.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Features\" />
+  </ItemGroup>
+
 </Project>

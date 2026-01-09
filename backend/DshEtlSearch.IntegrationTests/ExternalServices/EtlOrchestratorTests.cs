@@ -1,15 +1,15 @@
 ﻿using DshEtlSearch.Core.Common;
 using DshEtlSearch.Core.Common.Enums;
 using DshEtlSearch.Core.Domain;
-using DshEtlSearch.Core.Features.Ingestion;
 using DshEtlSearch.Core.Interfaces.Infrastructure;
 using DshEtlSearch.Core.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text;
+using DshEtlSearch.Infrastructure.ExternalServices.Ingestion;
 using Xunit;
 
-namespace DshEtlSearch.UnitTests.Core.Features;
+namespace DshEtlSearch.IntegrationTests.ExternalServices;
 
 public class EtlOrchestratorTests
 {

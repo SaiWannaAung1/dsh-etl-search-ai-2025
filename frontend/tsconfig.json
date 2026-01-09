@@ -10,8 +10,17 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
+		"allowJs": true,
+		"checkJs": true,
+		"types": ["@playwright/test", "vitest/globals"],
 		"moduleResolution": "bundler"
-	}
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.svelte",
+		"tests/**/*.ts",
+		"vite.config.ts"// Ensure Playwright tests are included
+	]
 	// Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
 	// except $lib which is handled by https://svelte.dev/docs/kit/configuration#files
 	//
